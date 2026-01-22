@@ -150,19 +150,21 @@ def summarize_by_symbol(calculated_df: pd.DataFrame) -> pd.DataFrame:
     - notional_usd
     - percentage
     """
-    summary = calculated_df.groupby('symbol').agg({
-        'lots': 'sum',
-        'notional_usd': 'sum',
-    }).reset_index()
+    # Use named aggregation for explicit column naming
+    summary = calculated_df.groupby('symbol', as_index=False).agg(
+        total_lots=('lots', 'sum'),
+        notional_usd=('notional_usd', 'sum')
+    )
 
-    summary.columns = ['symbol', 'total_lots', 'notional_usd']
+    # Ensure notional_usd is float type
+    summary['notional_usd'] = summary['notional_usd'].astype(float)
 
     # Calculate percentage
     total_notional = summary['notional_usd'].sum()
     summary['percentage'] = (summary['notional_usd'] / total_notional * 100) if total_notional > 0 else 0
 
     # Sort by notional descending
-    summary = summary.sort_values('notional_usd', ascending=False)
+    summary = summary.sort_values('notional_usd', ascending=False).reset_index(drop=True)
 
     return summary
 

@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}How It Works - Trading Notional Calculator{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to Calculator
+    </a>
+</div>
+
+<h2 class="mb-4"><i class="bi bi-book me-2"></i>How It Works</h2>
+
+<!-- Section 1: Notional Volume Calculation -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-calculator me-2"></i>1. Notional Volume Calculation</h5>
+    </div>
+    <div class="card-body">
+        <p><strong>Notional volume</strong> represents the total market value of a leveraged position. It's calculated differently depending on the instrument type:</p>
+
+        <h6 class="mt-4 mb-3">General Formula</h6>
+        <div class="alert alert-secondary">
+            <code class="fs-6">Notional (USD) = Lots x Contract Size x Price x FX Rate</code>
+        </div>
+
+        <h6 class="mt-4 mb-3">Formulas by Instrument Type</h6>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Type</th>
+                        <th>Examples</th>
+                        <th>Formula</th>
+                        <th>Explanation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>USD Base Pairs</strong></td>
+                        <td>USDJPY, USDCAD, USDCHF</td>
+                        <td><code>Lots x 100,000</code></td>
+                        <td>Base currency is already USD, no conversion needed</td>
+                    </tr>
+                    <tr>
+                        <td><strong>USD Quote Pairs</strong></td>
+                        <td>EURUSD, GBPUSD, AUDUSD</td>
+                        <td><code>Lots x 100,000 x Close Price</code></td>
+                        <td>Close price represents how many USD per base unit</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cross Pairs</strong></td>
+                        <td>GBPJPY, EURJPY, AUDCAD</td>
+                        <td><code>Lots x 100,000 x Base-to-USD Rate</code></td>
+                        <td>Requires FX rate lookup to convert base currency to USD</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Commodities & Indices</strong></td>
+                        <td>XAUUSD, BTCUSD, GER40</td>
+                        <td><code>Lots x Contract Size x Close Price x FX Rate</code></td>
+                        <td>Uses specific contract sizes and FX conversion if needed</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h6 class="mt-4 mb-3">Contract Sizes</h6>
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Instrument</th>
+                            <th>Contract Size</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Forex Pairs</td><td>100,000 units</td></tr>
+                        <tr><td>Gold (XAUUSD)</td><td>100 troy ounces</td></tr>
+                        <tr><td>Silver (XAGUSD)</td><td>5,000 troy ounces</td></tr>
+                        <tr><td>Crude Oil (WTI/USOIL)</td><td>1,000 barrels</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Instrument</th>
+                            <th>Contract Size</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Bitcoin (BTCUSD)</td><td>1 BTC</td></tr>
+                        <tr><td>Ethereum (ETHUSD)</td><td>1 ETH</td></tr>
+                        <tr><td>Indices (GER40, US30)</td><td>1 unit</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <h6 class="mt-4 mb-3">Example Calculation</h6>
+        <div class="alert alert-light border">
+            <strong>Trade:</strong> Buy 0.5 lots of EURUSD, closed at 1.0850<br>
+            <strong>Calculation:</strong> 0.5 x 100,000 x 1.0850 = <strong>$54,250 USD</strong>
+        </div>
+    </div>
+</div>
+
+<!-- Section 2: FX Rate Conversion -->
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-currency-exchange me-2"></i>2. FX Rate Conversion</h5>
+    </div>
+    <div class="card-body">
+        <p>When a trade's base currency is not USD, we need to convert it to USD using the exchange rate from the trade's close date.</p>
+
+        <h6 class="mt-4 mb-3">When FX Conversion is Needed</h6>
+        <ul>
+            <li><strong>Cross currency pairs</strong> (e.g., GBPJPY) - need to convert GBP to USD</li>
+            <li><strong>Non-USD indices</strong> (e.g., GER40) - need to convert EUR to USD</li>
+        </ul>
+
+        <h6 class="mt-4 mb-3">How Rates Are Fetched</h6>
+        <ol>
+            <li><strong>Historical API</strong> - We use the <a href="https://www.frankfurter.app/" target="_blank" class="text-decoration-none">Frankfurter API</a> to fetch historical exchange rates</li>
+            <li><strong>Date-Based Lookup</strong> - Rates are fetched for the exact date the trade was closed</li>
+            <li><strong>In-Memory Caching</strong> - Once fetched, rates are cached to avoid duplicate API calls</li>
+            <li><strong>Fallback Rates</strong> - If the API is unavailable, approximate static rates are used</li>
+        </ol>
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Why historical rates?</strong> Using the exchange rate from the actual trade date provides more accurate notional calculations than using current rates.
+        </div>
+    </div>
+</div>
+
+<!-- Section 3: FX Source Types -->
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="bi bi-tags me-2"></i>3. FX Source Types</h5>
+    </div>
+    <div class="card-body">
+        <p>Each trade shows an "FX Source" badge indicating how the exchange rate was obtained:</p>
+
+        <div class="row mt-4">
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <span class="badge bg-secondary fs-6 mb-2">direct</span>
+                        <h6>Direct USD Quote</h6>
+                        <p class="text-muted mb-0">The instrument is already quoted in USD (e.g., EURUSD, XAUUSD). No FX conversion needed - rate is 1.0.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <span class="badge bg-success fs-6 mb-2">api</span>
+                        <h6>Historical API</h6>
+                        <p class="text-muted mb-0">Fresh rate fetched from the Frankfurter API for the trade's close date. Most accurate source.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <span class="badge bg-info fs-6 mb-2">cached</span>
+                        <h6>Cached API Rate</h6>
+                        <p class="text-muted mb-0">Rate was previously fetched for the same currency/date combination and reused from memory cache.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <span class="badge bg-warning text-dark fs-6 mb-2">fallback</span>
+                        <h6>Fallback Rate</h6>
+                        <p class="text-muted mb-0">API unavailable - using approximate static rate. Results may be less accurate. <i class="bi bi-exclamation-triangle text-warning"></i></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-secondary mt-3">
+            <i class="bi bi-lightbulb me-2"></i>
+            <strong>Tip:</strong> If you see many "fallback" badges, check your internet connection or try again later for more accurate results.
+        </div>
+    </div>
+</div>
+
+<!-- Supported Platforms -->
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0"><i class="bi bi-laptop me-2"></i>4. Supported Platforms</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="card h-100 border-primary">
+                    <div class="card-body">
+                        <h5><span class="badge bg-primary me-2">MT5</span>MetaTrader 5</h5>
+                        <p class="text-muted">Export your trade history from the <strong>History</strong> tab:</p>
+                        <ol class="small text-muted">
+                            <li>Open the History tab in MT5</li>
+                            <li>Right-click and select "Report"</li>
+                            <li>Choose "Open XML" or export as Excel</li>
+                            <li>Upload the .xlsx file</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card h-100 border-success">
+                    <div class="card-body">
+                        <h5><span class="badge bg-success me-2">cTrader</span>cTrader</h5>
+                        <p class="text-muted">Export your trade history from <strong>History</strong>:</p>
+                        <ol class="small text-muted">
+                            <li>Go to the History section</li>
+                            <li>Select date range</li>
+                            <li>Click "Statement" or export icon</li>
+                            <li>Upload the .xlsx or .csv file</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
