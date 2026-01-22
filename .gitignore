@@ -37,13 +37,13 @@ env/
 .claude/
 
 # User data - do not commit personal trade files
-uploads/
 outputs/
+
+# Ignore all xlsx/csv except sample files
 *.xlsx
 *.csv
-
-# Keep sample files if needed (uncomment to track)
-# !uploads/sample_*.xlsx
+!uploads/sample_*.xlsx
+!uploads/sample_*.csv
 
 # OS
 .DS_Store
