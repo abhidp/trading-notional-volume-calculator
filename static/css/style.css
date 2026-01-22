@@ -1,0 +1,114 @@
+/* Custom styles for Trading Notional Calculator */
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Upload area styling */
+.upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+}
+
+.upload-area:hover {
+    border-color: #0d6efd;
+    background-color: #e7f1ff;
+}
+
+.upload-area.drag-over {
+    border-color: #0d6efd;
+    background-color: #cfe2ff;
+}
+
+/* Card hover effects */
+.card {
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Summary cards */
+.card.bg-primary:hover,
+.card.bg-success:hover,
+.card.bg-info:hover {
+    transform: translateY(-2px);
+}
+
+/* Table improvements */
+.table th {
+    white-space: nowrap;
+}
+
+.table-responsive {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+#tradesTable thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+/* Badge styling */
+.badge {
+    font-weight: 500;
+}
+
+/* Chart container */
+#pieChart {
+    min-height: 400px;
+    width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-title {
+        font-size: 1.25rem;
+    }
+
+    .display-4 {
+        font-size: 2rem;
+    }
+}
+
+/* Footer styling */
+.footer {
+    margin-top: auto;
+}
+
+/* Flash messages */
+.alert {
+    border-radius: 0.5rem;
+}
+
+/* Navbar branding */
+.navbar-brand {
+    font-weight: 600;
+}
+
+/* Form styling */
+.form-label {
+    color: #495057;
+}
+
+.form-text {
+    font-size: 0.85rem;
+}
+
+/* Loading state */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
