@@ -210,6 +210,31 @@ def download(result_id):
     )
 
 
+@app.route('/export/<result_id>/html')
+def export_html(result_id):
+    """Export report as self-contained HTML with embedded chart"""
+    if result_id not in results_store:
+        flash('Results not found.', 'error')
+        return redirect(url_for('index'))
+
+    data = results_store[result_id]
+
+    # Render export template with chart JSON for client-side rendering
+    html_content = render_template(
+        'export.html',
+        data=data,
+        chart_json=data['pie_chart_json'],
+        generated_at=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    )
+
+    filename = f"notional_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+    return Response(
+        html_content,
+        mimetype='text/html',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
+
 @app.route('/api/platforms')
 def api_platforms():
     """API endpoint to list supported platforms"""

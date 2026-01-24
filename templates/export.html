@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notional Volume Report - {{ data.filename }}</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #212529; line-height: 1.5; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        h1, h2, h3 { margin-bottom: 0.5rem; }
+        .header { border-bottom: 2px solid #0d6efd; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h1 { color: #0d6efd; font-size: 1.75rem; }
+        .header .meta { color: #6c757d; font-size: 0.9rem; }
+        .summary-cards { display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap; }
+        .summary-card { flex: 1; min-width: 200px; padding: 20px; border-radius: 8px; color: white; }
+        .summary-card.primary { background: #0d6efd; }
+        .summary-card.success { background: #198754; }
+        .summary-card.info { background: #0dcaf0; color: white; }
+        .summary-card h3 { font-size: 0.85rem; opacity: 0.85; margin-bottom: 5px; font-weight: normal; }
+        .summary-card .value { font-size: 1.5rem; font-weight: bold; }
+        .section { margin-bottom: 25px; }
+        .section-title { font-size: 1.1rem; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 8px; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
+        th { background: #212529; color: white; font-weight: 600; }
+        tr:hover { background: #f8f9fa; }
+        .text-end { text-align: right; }
+        .text-center { text-align: center; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
+        .badge-success { background: #198754; color: white; }
+        .badge-danger { background: #dc3545; color: white; }
+        .badge-secondary { background: #6c757d; color: white; }
+        .badge-info { background: #0dcaf0; color: #000; }
+        .badge-warning { background: #ffc107; color: #000; }
+        .progress-container { display: flex; align-items: center; gap: 8px; }
+        .progress-bar { height: 8px; background: #e9ecef; border-radius: 4px; flex-grow: 1; overflow: hidden; }
+        .progress-fill { height: 100%; background: #0d6efd; border-radius: 4px; }
+        .chart-container { margin: 20px 0; }
+        .two-column { display: flex; gap: 20px; flex-wrap: wrap; }
+        .two-column > div { flex: 1; min-width: 300px; }
+        .fx-summary { display: flex; gap: 20px; flex-wrap: wrap; }
+        .fx-item { display: flex; align-items: center; gap: 8px; }
+        .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: 0.8rem; text-align: center; }
+        @media print {
+            body { padding: 0; }
+            .summary-card { break-inside: avoid; }
+            table { font-size: 0.75rem; }
+            th, td { padding: 6px 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Notional Volume Report</h1>
+        <div class="meta">
+            <strong>File:</strong> {{ data.filename }} |
+            <strong>Platform:</strong> {{ data.platform_name }}{% if data.auto_detected %} (auto-detected){% endif %} |
+            <strong>Period:</strong> {{ data.period_start }} to {{ data.period_end }}
+        </div>
+    </div>
+
+    <div class="summary-cards">
+        <div class="summary-card primary">
+            <h3>Total Notional Volume</h3>
+            <div class="value">${{ "{:,.2f}".format(data.total_notional) }}</div>
+        </div>
+        <div class="summary-card success">
+            <h3>Total Trades</h3>
+            <div class="value">{{ data.total_trades }}</div>
+        </div>
+        <div class="summary-card info">
+            <h3>Total Lots</h3>
+            <div class="value">{{ "{:,.2f}".format(data.total_lots) }}</div>
+        </div>
+    </div>
+
+    <div class="two-column">
+        <div class="section">
+            <h2 class="section-title">Distribution by Symbol</h2>
+            <div class="chart-container" id="pieChart"></div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Summary by Symbol</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th class="text-end">Total Lots</th>
+                        <th class="text-end">Notional (USD)</th>
+                        <th>Distribution</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data.summary %}
+                    <tr>
+                        <td><strong>{{ row.symbol }}</strong></td>
+                        <td class="text-end">{{ "{:.2f}".format(row.total_lots) }}</td>
+                        <td class="text-end">${{ "{:,.2f}".format(row.notional_usd) }}</td>
+                        <td>
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: {{ row.percentage }}%;"></div>
+                                </div>
+                                <span>{{ "{:.1f}".format(row.percentage) }}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">Trade Details</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Close Time</th>
+                    <th>Symbol</th>
+                    <th class="text-center">Type</th>
+                    <th class="text-end">Lots</th>
+                    <th class="text-end">Close Price</th>
+                    <th class="text-end">FX Rate</th>
+                    <th class="text-center">FX Source</th>
+                    <th class="text-end">Notional (USD)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trade in data.trades %}
+                <tr>
+                    <td>{{ trade.close_time[:19] if trade.close_time is string else trade.close_time.strftime('%Y-%m-%d %H:%M:%S') if trade.close_time.strftime is defined else trade.close_time }}</td>
+                    <td><strong>{{ trade.symbol }}</strong></td>
+                    <td class="text-center">
+                        {% if trade.type == 'buy' %}
+                        <span class="badge badge-success">buy</span>
+                        {% else %}
+                        <span class="badge badge-danger">sell</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">{{ "{:.2f}".format(trade.lots) }}</td>
+                    <td class="text-end">{{ "{:,.2f}".format(trade.close_price) }}</td>
+                    <td class="text-end">{{ "{:.4f}".format(trade.fx_rate) }}</td>
+                    <td class="text-center">
+                        {% if trade.fx_source == 'direct' %}
+                        <span class="badge badge-secondary">direct</span>
+                        {% elif trade.fx_source == 'api' %}
+                        <span class="badge badge-success">api</span>
+                        {% elif trade.fx_source == 'api_cached' %}
+                        <span class="badge badge-info">cached</span>
+                        {% else %}
+                        <span class="badge badge-warning">fallback</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end"><strong>${{ "{:,.2f}".format(trade.notional_usd) }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">FX Rate Sources</h2>
+        <div class="fx-summary">
+            {% if data.fx_summary.direct > 0 %}
+            <div class="fx-item">
+                <span class="badge badge-secondary">{{ data.fx_summary.direct }}</span>
+                <span>Direct USD quote</span>
+            </div>
+            {% endif %}
+            {% if data.fx_summary.api > 0 %}
+            <div class="fx-item">
+                <span class="badge badge-success">{{ data.fx_summary.api }}</span>
+                <span>Historical API</span>
+            </div>
+            {% endif %}
+            {% if data.fx_summary.api_cached > 0 %}
+            <div class="fx-item">
+                <span class="badge badge-info">{{ data.fx_summary.api_cached }}</span>
+                <span>Cached API</span>
+            </div>
+            {% endif %}
+            {% if data.fx_summary.fallback > 0 %}
+            <div class="fx-item">
+                <span class="badge badge-warning">{{ data.fx_summary.fallback }}</span>
+                <span>Fallback rates</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="footer">
+        Generated by Trading Notional Volume Calculator | {{ generated_at }}
+    </div>
+
+    <script>
+        // Render pie chart
+        const chartData = {{ chart_json|safe }};
+        const fig = {
+            data: [{
+                type: 'pie',
+                labels: chartData.data[0].labels,
+                values: chartData.data[0].values,
+                hole: 0.4,
+                textposition: 'inside',
+                textinfo: 'percent+label'
+            }],
+            layout: {
+                showlegend: true,
+                legend: { orientation: 'h', yanchor: 'top', y: -0.1, xanchor: 'center', x: 0.5 },
+                margin: { t: 20, b: 80, l: 20, r: 20 },
+                height: 400
+            }
+        };
+        Plotly.newPlot('pieChart', fig.data, fig.layout, { responsive: true, displayModeBar: false });
+    </script>
+</body>
+</html>
