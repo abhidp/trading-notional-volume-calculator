@@ -27,8 +27,14 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 # Configuration
-UPLOAD_FOLDER = Path(__file__).parent / 'uploads'
-OUTPUT_FOLDER = Path(__file__).parent / 'outputs'
+# Use /tmp on Vercel (serverless has read-only filesystem except /tmp)
+if os.environ.get('VERCEL'):
+    UPLOAD_FOLDER = Path('/tmp/uploads')
+    OUTPUT_FOLDER = Path('/tmp/outputs')
+else:
+    UPLOAD_FOLDER = Path(__file__).parent / 'uploads'
+    OUTPUT_FOLDER = Path(__file__).parent / 'outputs'
+
 ALLOWED_EXTENSIONS = {'xlsx', 'csv'}
 
 # Ensure folders exist
