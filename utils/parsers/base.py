@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from io import BytesIO
+from typing import Union
 import pandas as pd
 
 
@@ -6,12 +8,12 @@ class BaseParser(ABC):
     """Base class for all platform parsers"""
 
     @abstractmethod
-    def can_parse(self, filepath: str) -> bool:
+    def can_parse(self, file_data: BytesIO, filename: str) -> bool:
         """Check if this parser can handle the file"""
         pass
 
     @abstractmethod
-    def parse(self, filepath: str) -> pd.DataFrame:
+    def parse(self, file_data: BytesIO, filename: str) -> pd.DataFrame:
         """
         Parse file and return standardized DataFrame.
 

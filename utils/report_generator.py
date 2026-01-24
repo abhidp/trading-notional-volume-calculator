@@ -2,6 +2,7 @@ import pandas as pd
 import json
 from datetime import datetime
 from pathlib import Path
+from io import StringIO, BytesIO
 
 
 def generate_csv_report(calculated_df: pd.DataFrame, output_path: str) -> str:
@@ -25,6 +26,27 @@ def generate_csv_report(calculated_df: pd.DataFrame, output_path: str) -> str:
     export_df.to_csv(output_path, index=False)
 
     return output_path
+
+
+def generate_csv_report_bytes(calculated_df: pd.DataFrame) -> bytes:
+    """
+    Generate CSV report in memory and return as bytes.
+
+    Args:
+        calculated_df: DataFrame with calculated notional values
+
+    Returns:
+        CSV content as bytes
+    """
+    export_columns = [
+        'close_time', 'symbol', 'type', 'lots', 'open_price', 'close_price',
+        'commission', 'swap', 'profit', 'fx_rate', 'fx_source', 'notional_usd'
+    ]
+
+    export_df = calculated_df[export_columns].copy()
+    csv_buffer = StringIO()
+    export_df.to_csv(csv_buffer, index=False)
+    return csv_buffer.getvalue().encode('utf-8')
 
 
 def generate_json_report(
