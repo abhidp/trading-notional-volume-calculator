@@ -162,6 +162,11 @@ tr:nth-child(8) .progress-bar { animation-delay: 1.4s; }
     width: 100%;
 }
 
+/* Pie chart segment hover glow effect */
+#pieChart .slice path {
+    transition: filter 0.3s ease;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .card-title {

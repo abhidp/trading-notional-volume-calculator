@@ -405,29 +405,48 @@ Calculator{% endblock %} {% block content %}
       requestAnimationFrame(animateSegments);
     }, 600);
 
-    // // Add hover effect - segment pops out when hovered
-    // pieChartEl.on('plotly_hover', function(data) {
-    //   if (!animationComplete) return;
-    //   const pointIndex = data.points[0].pointNumber;
-    //   const pullValues = new Array(numSegments).fill(0);
-    //   pullValues[pointIndex] = 0.08; // Pull out hovered segment
+    // Add hover effect - segment pops out with color-matched glow when hovered
+    pieChartEl.on('plotly_hover', function(data) {
+      if (!animationComplete) return;
+      const pointIndex = data.points[0].pointNumber;
+      const pullValues = new Array(numSegments).fill(0);
+      pullValues[pointIndex] = 0.08; // Pull out hovered segment
 
-    //   Plotly.react('pieChart', [{
-    //     ...chartData[0],
-    //     opacity: 1,
-    //     pull: pullValues
-    //   }], pieChartData.layout, config);
-    // });
+      // Get the actual color of the hovered segment from the SVG
+      const slices = pieChartEl.querySelectorAll('.slice path');
+      slices.forEach((path, i) => {
+        if (i === pointIndex) {
+          // Get the fill color of this segment
+          const fillColor = path.style.fill || window.getComputedStyle(path).fill;
+          // Apply color-matched glow
+          path.style.filter = `drop-shadow(0 0 12px ${fillColor}) drop-shadow(0 0 20px ${fillColor})`;
+        } else {
+          path.style.filter = '';
+        }
+      });
 
-    // // Reset on unhover
-    // pieChartEl.on('plotly_unhover', function() {
-    //   if (!animationComplete) return;
-    //   Plotly.react('pieChart', [{
-    //     ...chartData[0],
-    //     opacity: 1,
-    //     pull: new Array(numSegments).fill(0)
-    //   }], pieChartData.layout, config);
-    // });
+      Plotly.react('pieChart', [{
+        ...chartData[0],
+        opacity: 1,
+        pull: pullValues
+      }], pieChartData.layout, config);
+    });
+
+    // Reset on unhover
+    pieChartEl.on('plotly_unhover', function() {
+      if (!animationComplete) return;
+
+      // Remove glow effect
+      pieChartEl.querySelectorAll('.slice path').forEach(path => {
+        path.style.filter = '';
+      });
+
+      Plotly.react('pieChart', [{
+        ...chartData[0],
+        opacity: 1,
+        pull: new Array(numSegments).fill(0)
+      }], pieChartData.layout, config);
+    });
   });
 </script>
 {% endblock %}
