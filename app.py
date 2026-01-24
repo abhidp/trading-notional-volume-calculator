@@ -3,15 +3,16 @@
 Trading Notional Volume Calculator - Web UI
 
 Flask web application for calculating notional trading volume from trade history exports.
+All processing is done in memory - no user data is stored on the server.
 """
 
 import os
 import uuid
 import warnings
 from datetime import datetime
-from pathlib import Path
+from io import BytesIO
 
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, Response, jsonify
 import plotly.graph_objects as go
 import plotly.utils
 import json
@@ -21,25 +22,14 @@ warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 from utils.parsers import detect_platform, get_parser, list_platforms
 from utils.calculator import calculate_notional, summarize_by_symbol, get_fx_source_summary
-from utils.report_generator import generate_csv_report, get_default_output_path
+from utils.report_generator import generate_csv_report_bytes
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 # Configuration
-# Use /tmp on Vercel (serverless has read-only filesystem except /tmp)
-if os.environ.get('VERCEL'):
-    UPLOAD_FOLDER = Path('/tmp/uploads')
-    OUTPUT_FOLDER = Path('/tmp/outputs')
-else:
-    UPLOAD_FOLDER = Path(__file__).parent / 'uploads'
-    OUTPUT_FOLDER = Path(__file__).parent / 'outputs'
-
 ALLOWED_EXTENSIONS = {'xlsx', 'csv'}
-
-# Ensure folders exist
-UPLOAD_FOLDER.mkdir(exist_ok=True)
-OUTPUT_FOLDER.mkdir(exist_ok=True)
+MAX_RESULTS = 5  # Keep only last 5 results to limit memory usage
 
 # Store results in memory (in production, use a database or cache)
 results_store = {}
@@ -58,7 +48,7 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload():
-    """Handle file upload and process"""
+    """Handle file upload and process entirely in memory"""
     # Check if file was uploaded
     if 'file' not in request.files:
         flash('No file selected', 'error')
@@ -77,16 +67,14 @@ def upload():
     # Get selected platform
     platform = request.form.get('platform', 'auto')
 
-    # Save file temporarily
-    file_id = str(uuid.uuid4())
-    filename = f"{file_id}_{file.filename}"
-    filepath = UPLOAD_FOLDER / filename
-    file.save(filepath)
+    # Read file into memory (no disk storage)
+    file_data = BytesIO(file.read())
+    filename = file.filename
 
     try:
         # Get parser
         if platform == 'auto':
-            parser = detect_platform(str(filepath))
+            parser = detect_platform(file_data, filename)
             auto_detected = True
         else:
             parser = get_parser(platform)
@@ -94,8 +82,8 @@ def upload():
 
         platform_name = parser.get_platform_name()
 
-        # Parse trades
-        trades_df = parser.parse(str(filepath))
+        # Parse trades (from memory)
+        trades_df = parser.parse(file_data, filename)
 
         if trades_df.empty:
             flash('No trades found in the file', 'error')
@@ -159,12 +147,17 @@ def upload():
         )
         pie_chart_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
-        # Store results
-        result_id = file_id
+        # Clean up old results if limit reached
+        while len(results_store) >= MAX_RESULTS:
+            oldest_key = next(iter(results_store))
+            del results_store[oldest_key]
+
+        # Store results in memory (no file references)
+        result_id = str(uuid.uuid4())
         results_store[result_id] = {
             'platform_name': platform_name,
             'auto_detected': auto_detected,
-            'filename': file.filename,
+            'filename': filename,
             'total_notional': total_notional,
             'total_trades': total_trades,
             'total_lots': total_lots,
@@ -174,16 +167,12 @@ def upload():
             'summary': summary_df.to_dict('records'),
             'fx_summary': fx_summary,
             'pie_chart_json': pie_chart_json,
-            'filepath': str(filepath),
         }
 
         return redirect(url_for('results', result_id=result_id))
 
     except Exception as e:
         flash(f'Error processing file: {str(e)}', 'error')
-        # Clean up uploaded file on error
-        if filepath.exists():
-            filepath.unlink()
         return redirect(url_for('index'))
 
 
@@ -200,27 +189,24 @@ def results(result_id):
 
 @app.route('/download/<result_id>')
 def download(result_id):
-    """Download CSV report"""
+    """Download CSV report (generated in memory)"""
     if result_id not in results_store:
         flash('Results not found.', 'error')
         return redirect(url_for('index'))
 
     data = results_store[result_id]
 
-    # Generate CSV
+    # Generate CSV in memory
     import pandas as pd
     calculated_df = pd.DataFrame(data['trades'])
+    csv_bytes = generate_csv_report_bytes(calculated_df)
 
     output_filename = f"notional_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-    output_path = OUTPUT_FOLDER / output_filename
 
-    generate_csv_report(calculated_df, str(output_path))
-
-    return send_file(
-        output_path,
-        as_attachment=True,
-        download_name=output_filename,
-        mimetype='text/csv'
+    return Response(
+        csv_bytes,
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={output_filename}'}
     )
 
 

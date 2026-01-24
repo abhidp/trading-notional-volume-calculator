@@ -1,4 +1,5 @@
 import pandas as pd
+from io import BytesIO
 from .base import BaseParser
 
 
@@ -20,19 +21,22 @@ class MT5Parser(BaseParser):
         'profit': ['Profit'],
     }
 
-    def can_parse(self, filepath: str) -> bool:
+    def can_parse(self, file_data: BytesIO, filename: str) -> bool:
         """Check if first cell contains 'Trade History Report'"""
         try:
-            if filepath.endswith('.xlsx'):
-                df = pd.read_excel(filepath, nrows=1, header=None)
-            elif filepath.endswith('.csv'):
-                df = pd.read_csv(filepath, nrows=1, header=None)
+            file_data.seek(0)
+            if filename.endswith('.xlsx'):
+                df = pd.read_excel(file_data, nrows=1, header=None)
+            elif filename.endswith('.csv'):
+                df = pd.read_csv(file_data, nrows=1, header=None)
             else:
                 return False
+            file_data.seek(0)
 
             first_cell = str(df.iloc[0, 0]) if not df.empty else ""
             return "Trade History Report" in first_cell
         except Exception:
+            file_data.seek(0)
             return False
 
     def _get_column(self, df: pd.DataFrame, field: str) -> str:
@@ -43,7 +47,7 @@ class MT5Parser(BaseParser):
                 return name
         raise ValueError(f"Could not find column for '{field}'. Expected one of: {possible_names}. Available: {list(df.columns)}")
 
-    def _find_positions_section(self, filepath: str) -> tuple[int, int]:
+    def _find_positions_section(self, file_data: BytesIO, filename: str) -> tuple[int, int]:
         """
         Find the start (header row) and end of the Positions section.
 
@@ -51,10 +55,12 @@ class MT5Parser(BaseParser):
             tuple: (header_row, num_rows) - header row index and number of data rows to read
         """
         # Read file to analyze structure
-        if filepath.endswith('.xlsx'):
-            df = pd.read_excel(filepath, header=None)
+        file_data.seek(0)
+        if filename.endswith('.xlsx'):
+            df = pd.read_excel(file_data, header=None)
         else:
-            df = pd.read_csv(filepath, header=None)
+            df = pd.read_csv(file_data, header=None)
+        file_data.seek(0)
 
         header_row = None
         end_row = None
@@ -89,17 +95,18 @@ class MT5Parser(BaseParser):
 
         return header_row, num_rows
 
-    def parse(self, filepath: str) -> pd.DataFrame:
+    def parse(self, file_data: BytesIO, filename: str) -> pd.DataFrame:
         """Parse MT5 trade history file"""
         # Find Positions section boundaries
-        header_row, num_rows = self._find_positions_section(filepath)
+        header_row, num_rows = self._find_positions_section(file_data, filename)
 
-        if filepath.endswith('.xlsx'):
-            df = pd.read_excel(filepath, skiprows=header_row, nrows=num_rows)
-        elif filepath.endswith('.csv'):
-            df = pd.read_csv(filepath, skiprows=header_row, nrows=num_rows)
+        file_data.seek(0)
+        if filename.endswith('.xlsx'):
+            df = pd.read_excel(file_data, skiprows=header_row, nrows=num_rows)
+        elif filename.endswith('.csv'):
+            df = pd.read_csv(file_data, skiprows=header_row, nrows=num_rows)
         else:
-            raise ValueError(f"Unsupported file format: {filepath}")
+            raise ValueError(f"Unsupported file format: {filename}")
 
         # Filter out non-trade rows (balance operations, pending orders, etc.)
         type_col = self._get_column(df, 'type')

@@ -1,3 +1,4 @@
+from io import BytesIO
 from .base import BaseParser
 from .mt5 import MT5Parser
 from .ctrader import CTraderParser
@@ -12,13 +13,13 @@ PLATFORM_PARSERS = {
 }
 
 
-def detect_platform(filepath: str) -> BaseParser:
+def detect_platform(file_data: BytesIO, filename: str) -> BaseParser:
     """Auto-detect platform from file structure"""
     for parser in PARSERS:
-        if parser.can_parse(filepath):
+        if parser.can_parse(file_data, filename):
             return parser
     raise ValueError(
-        "Unable to detect platform. Please specify manually using --platform.\n"
+        "Unable to detect platform. Please specify manually.\n"
         f"Supported platforms: {', '.join(PLATFORM_PARSERS.keys())}"
     )
 

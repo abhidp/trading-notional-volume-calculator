@@ -1,4 +1,5 @@
 import pandas as pd
+from io import BytesIO
 from .base import BaseParser
 
 
@@ -26,15 +27,17 @@ class CTraderParser(BaseParser):
     VOLUME_UNITS_THRESHOLD = 100
     VOLUME_DIVISOR = 100000
 
-    def can_parse(self, filepath: str) -> bool:
+    def can_parse(self, file_data: BytesIO, filename: str) -> bool:
         """Check for cTrader-specific columns"""
         try:
-            if filepath.endswith('.xlsx'):
-                df = pd.read_excel(filepath, nrows=1)
-            elif filepath.endswith('.csv'):
-                df = pd.read_csv(filepath, nrows=1)
+            file_data.seek(0)
+            if filename.endswith('.xlsx'):
+                df = pd.read_excel(file_data, nrows=1)
+            elif filename.endswith('.csv'):
+                df = pd.read_csv(file_data, nrows=1)
             else:
                 return False
+            file_data.seek(0)
 
             # Check for any cTrader-specific column combinations
             ctrader_indicators = [
@@ -43,6 +46,7 @@ class CTraderParser(BaseParser):
             ]
             return any(col in df.columns for col in ctrader_indicators)
         except Exception:
+            file_data.seek(0)
             return False
 
     def _get_column(self, df: pd.DataFrame, field: str) -> str:
@@ -61,14 +65,15 @@ class CTraderParser(BaseParser):
             raise ValueError(f"Could not find column for '{field}'. Expected one of: {possible_names}. Available: {list(df.columns)}")
         return col
 
-    def parse(self, filepath: str) -> pd.DataFrame:
+    def parse(self, file_data: BytesIO, filename: str) -> pd.DataFrame:
         """Parse cTrader trade history file"""
-        if filepath.endswith('.xlsx'):
-            df = pd.read_excel(filepath)
-        elif filepath.endswith('.csv'):
-            df = pd.read_csv(filepath)
+        file_data.seek(0)
+        if filename.endswith('.xlsx'):
+            df = pd.read_excel(file_data)
+        elif filename.endswith('.csv'):
+            df = pd.read_csv(file_data)
         else:
-            raise ValueError(f"Unsupported file format: {filepath}")
+            raise ValueError(f"Unsupported file format: {filename}")
 
         if df.empty:
             raise ValueError("No data found in the file")
