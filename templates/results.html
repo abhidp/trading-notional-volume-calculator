@@ -35,42 +35,67 @@ Calculator{% endblock %} {% block content %}
 <!-- Summary Cards -->
 <div class="row mb-4">
   <div class="col-md-4">
-    <div class="card bg-primary text-white h-100">
+    <div
+      class="card summary-card bg-primary text-white h-100 animate-fade-in animate-delay-1"
+    >
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <div>
             <h6 class="card-subtitle mb-2 opacity-75">Total Notional Volume</h6>
-            <h3 class="card-title mb-0">{{ data.total_notional|currency }}</h3>
+            <h3 class="card-title mb-0">
+              $<span
+                class="count-up"
+                data-target="{{ data.total_notional }}"
+                data-decimals="2"
+                >0</span
+              >
+            </h3>
           </div>
-          <i class="bi bi-currency-dollar display-4 opacity-50"></i>
+          <i class="bi bi-currency-dollar display-6 opacity-50"></i>
         </div>
       </div>
     </div>
   </div>
   <div class="col-md-4">
-    <div class="card bg-success text-white h-100">
+    <div
+      class="card summary-card bg-success text-white h-100 animate-fade-in animate-delay-2"
+    >
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <div>
             <h6 class="card-subtitle mb-2 opacity-75">Total Trades</h6>
-            <h3 class="card-title mb-0">{{ data.total_trades }}</h3>
+            <h3 class="card-title mb-0">
+              <span
+                class="count-up"
+                data-target="{{ data.total_trades }}"
+                data-decimals="0"
+                >0</span
+              >
+            </h3>
           </div>
-          <i class="bi bi-arrow-left-right display-4 opacity-50"></i>
+          <i class="bi bi-arrow-left-right display-6 opacity-50"></i>
         </div>
       </div>
     </div>
   </div>
   <div class="col-md-4">
-    <div class="card bg-info text-white h-100">
+    <div
+      class="card summary-card bg-info text-white h-100 animate-fade-in animate-delay-3"
+    >
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <div>
             <h6 class="card-subtitle mb-2 opacity-75">Total Lots</h6>
             <h3 class="card-title mb-0">
-              {{ "%.2f"|format(data.total_lots) }}
+              <span
+                class="count-up"
+                data-target="{{ data.total_lots }}"
+                data-decimals="2"
+                >0</span
+              >
             </h3>
           </div>
-          <i class="bi bi-layers display-4 opacity-50"></i>
+          <i class="bi bi-layers display-6 opacity-50"></i>
         </div>
       </div>
     </div>
@@ -81,7 +106,7 @@ Calculator{% endblock %} {% block content %}
 <div class="row mb-4">
   <!-- Pie Chart -->
   <div class="col-lg-6 mb-4">
-    <div class="card h-100">
+    <div class="card animate-fade-in animate-delay-4" id="pieChartCard">
       <div class="card-header">
         <h5 class="mb-0">
           <i class="bi bi-pie-chart me-2"></i>Distribution by Symbol
@@ -95,21 +120,21 @@ Calculator{% endblock %} {% block content %}
 
   <!-- Summary by Symbol -->
   <div class="col-lg-6 mb-4">
-    <div class="card h-100">
+    <div class="card animate-fade-in animate-delay-5" id="summaryCard">
       <div class="card-header">
         <h5 class="mb-0">
           <i class="bi bi-list-ul me-2"></i>Summary by Symbol
         </h5>
       </div>
       <div class="card-body">
-        <div class="table-responsive">
+        <div class="table-responsive" id="summaryTableContainer">
           <table class="table table-hover">
             <thead>
               <tr>
                 <th>Symbol</th>
                 <th class="text-end">Total Lots</th>
                 <th class="text-end">Notional (USD)</th>
-                <th class="text-end">%</th>
+                <th style="min-width: 120px">Distribution</th>
               </tr>
             </thead>
             <tbody>
@@ -118,7 +143,26 @@ Calculator{% endblock %} {% block content %}
                 <td><strong>{{ row.symbol }}</strong></td>
                 <td class="text-end">{{ "%.2f"|format(row.total_lots) }}</td>
                 <td class="text-end">{{ row.notional_usd|currency }}</td>
-                <td class="text-end">{{ row.percentage|percentage }}</td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div
+                      class="progress flex-grow-1 progress-animated"
+                      style="height: 8px"
+                    >
+                      <div
+                        class="progress-bar bg-primary"
+                        role="progressbar"
+                        style="width: {{ row.percentage }}%;"
+                        aria-valuenow="{{ row.percentage }}"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      ></div>
+                    </div>
+                    <small class="ms-2 text-muted" style="min-width: 45px"
+                      >{{ row.percentage|percentage }}</small
+                    >
+                  </div>
+                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -245,8 +289,224 @@ Calculator{% endblock %} {% block content %}
 </div>
 {% endblock %} {% block scripts %}
 <script>
-  // Render pie chart
+  // Count-up animation function
+  function animateCountUp(element, target, decimals, duration = 2000) {
+    const start = 0;
+    const startTime = performance.now();
+
+    function formatNumber(num, dec) {
+      return num.toLocaleString('en-US', {
+        minimumFractionDigits: dec,
+        maximumFractionDigits: dec
+      });
+    }
+
+    function update(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      const current = start + (target - start) * easeOutQuart;
+
+      element.textContent = formatNumber(current, decimals);
+
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      }
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  // Initialize count-up animations
+  document.querySelectorAll('.count-up').forEach(el => {
+    const target = parseFloat(el.dataset.target);
+    const decimals = parseInt(el.dataset.decimals) || 0;
+    // Delay to sync with fade-in animation
+    setTimeout(() => {
+      animateCountUp(el, target, decimals, 1500);
+    }, 300);
+  });
+
+  // Render pie chart with staggered segment animation
   const pieChartData = {{ data.pie_chart_json|safe }};
-  Plotly.newPlot('pieChart', pieChartData.data, pieChartData.layout, {responsive: true});
+  const values = pieChartData.data[0].values;
+  const labels = pieChartData.data[0].labels;
+  const numSegments = values.length;
+
+  // Disable legend click to prevent hiding segments
+  pieChartData.layout.legend = {
+    ...pieChartData.layout.legend,
+    itemclick: false,
+    itemdoubleclick: false
+  };
+
+  // Config - hide toolbar for cleaner look
+  const config = {
+    responsive: true,
+    displayModeBar: false
+  };
+
+  // Start with all segments pulled out and semi-transparent
+  const initialPull = new Array(numSegments).fill(0.15);
+
+  const chartData = [{
+    type: 'pie',
+    labels: labels,
+    values: values,
+    hole: 0.3,
+    textposition: 'inside',
+    textinfo: 'percent+label',
+    rotation: 90,
+    direction: 'clockwise',
+    pull: initialPull,
+    opacity: 0,
+    hoverinfo: 'none',
+    marker: {
+      line: {
+        color: '#ffffff',
+        width: 0.5
+      }
+    }
+  }];
+
+  // Create chart then animate segments popping in
+  const pieChartEl = document.getElementById('pieChart');
+  let animationComplete = false;
+
+  Plotly.newPlot('pieChart', chartData, pieChartData.layout, config).then(() => {
+    // Delay to sync with card fade-in
+    setTimeout(() => {
+      const duration = 1500;
+      const startTime = performance.now();
+
+      function animateSegments(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Easing - easeOutBack for bounce effect
+        const eased = 1 + 2.7 * Math.pow(progress - 1, 3) + 1.7 * Math.pow(progress - 1, 2);
+
+        // Calculate pull values - segments pop in with staggered timing
+        const pullValues = initialPull.map((_, i) => {
+          // Each segment starts animation slightly later
+          const segmentDelay = i * 0.08;
+          const segmentProgress = Math.max(0, Math.min(1, (progress - segmentDelay) / (1 - segmentDelay)));
+          const segmentEased = 1 + 2.7 * Math.pow(segmentProgress - 1, 3) + 1.7 * Math.pow(segmentProgress - 1, 2);
+          return 0.15 * (1 - segmentEased);
+        });
+
+        Plotly.react('pieChart', [{
+          ...chartData[0],
+          opacity: Math.min(eased, 1),
+          pull: pullValues
+        }], pieChartData.layout, config);
+
+        if (progress < 1) {
+          requestAnimationFrame(animateSegments);
+        } else {
+          animationComplete = true;
+        }
+      }
+
+      requestAnimationFrame(animateSegments);
+    }, 600);
+
+    // Add hover effect - segment pops out with color-matched glow when hovered
+    let unhoverTimeout = null;
+    let currentHoveredIndex = -1;
+
+    pieChartEl.on('plotly_hover', function(data) {
+
+      // Clear any pending unhover
+      if (unhoverTimeout) {
+        clearTimeout(unhoverTimeout);
+        unhoverTimeout = null;
+      }
+
+      const pointIndex = data.points[0].pointNumber;
+
+      // Skip if already hovering this segment
+      if (currentHoveredIndex === pointIndex) return;
+      currentHoveredIndex = pointIndex;
+
+      const pullValues = new Array(numSegments).fill(0);
+      pullValues[pointIndex] = 0.08; // Pull out hovered segment
+
+      // Get the actual color of the hovered segment from the SVG
+      const slices = pieChartEl.querySelectorAll('.slice path');
+      slices.forEach((path, i) => {
+        if (i === pointIndex) {
+          // Get the fill color of this segment
+          const fillColor = path.style.fill || window.getComputedStyle(path).fill;
+          // Apply color-matched glow
+          path.style.filter = `drop-shadow(0 0 16px ${fillColor})`;
+        } else {
+          path.style.filter = '';
+        }
+      });
+
+      Plotly.react('pieChart', [{
+        ...chartData[0],
+        opacity: 1,
+        pull: pullValues
+      }], pieChartData.layout, config);
+    });
+
+    // Reset on unhover with debounce to prevent jittering
+    pieChartEl.on('plotly_unhover', function() {
+
+      // Debounce the unhover to prevent jittering when cursor is in the gap
+      unhoverTimeout = setTimeout(() => {
+        currentHoveredIndex = -1;
+
+        // Remove glow effect
+        pieChartEl.querySelectorAll('.slice path').forEach(path => {
+          path.style.filter = '';
+        });
+
+        Plotly.react('pieChart', [{
+          ...chartData[0],
+          opacity: 1,
+          pull: new Array(numSegments).fill(0)
+        }], pieChartData.layout, config);
+      }, 150);
+    });
+  });
+
+  // Match card heights dynamically - pie chart is the reference
+  function matchCardHeights() {
+    const pieCard = document.getElementById('pieChartCard');
+    const summaryCard = document.getElementById('summaryCard');
+    const summaryTableContainer = document.getElementById('summaryTableContainer');
+
+    // Reset to get natural sizes
+    pieCard.style.height = 'auto';
+    summaryCard.style.height = 'auto';
+    summaryTableContainer.style.maxHeight = 'none';
+
+    // Pie chart card is the reference height
+    const pieHeight = pieCard.offsetHeight;
+
+    // Set summary card to match pie chart height
+    summaryCard.style.height = pieHeight + 'px';
+
+    // Calculate available height for table (card height minus header and padding)
+    const summaryHeader = summaryCard.querySelector('.card-header');
+    const summaryBody = summaryCard.querySelector('.card-body');
+    const headerHeight = summaryHeader.offsetHeight;
+    const bodyPadding = 32; // card-body padding (1rem top + 1rem bottom)
+    const tableMaxHeight = pieHeight - headerHeight - bodyPadding;
+
+    summaryTableContainer.style.maxHeight = tableMaxHeight + 'px';
+    summaryTableContainer.style.overflowY = 'auto';
+  }
+
+  // Run shortly after chart renders (just need initial layout, not full animation)
+  setTimeout(matchCardHeights, 100);
+
+  // Also match on window resize
+  window.addEventListener('resize', matchCardHeights);
 </script>
 {% endblock %}

@@ -96,7 +96,21 @@ def upload():
             return redirect(url_for('index'))
 
         # Calculate notional values
-        calculated_df = calculate_notional(trades_df)
+        calculated_df, skipped_symbols = calculate_notional(trades_df)
+
+        # Show warning if any symbols were skipped
+        if skipped_symbols:
+            skipped_list = [f"{symbol} ({count} trades)" for symbol, count in skipped_symbols.items()]
+            flash(
+                f"Skipped unsupported symbols (likely Stock CFDs): {', '.join(skipped_list)}. "
+                "Stock CFD support coming soon.",
+                'warning'
+            )
+
+        if calculated_df.empty:
+            flash('No supported trades found in the file. All trades were skipped.', 'error')
+            return redirect(url_for('index'))
+
         summary_df = summarize_by_symbol(calculated_df)
         fx_summary = get_fx_source_summary(calculated_df)
 
@@ -110,6 +124,13 @@ def upload():
         # Create pie chart using graph_objects for explicit control
         pie_values = [float(v) for v in summary_df['notional_usd'].tolist()]
         pie_labels = summary_df['symbol'].tolist()
+        num_symbols = len(pie_labels)
+
+        # Calculate dynamic height based on number of legend items
+        # Base height for chart + extra rows for legends (4 items per row approx)
+        legend_rows = (num_symbols + 3) // 4  # ceiling division
+        legend_height = legend_rows * 22
+        chart_height = 450 + legend_height  # Larger base height for bigger pie
 
         fig = go.Figure(data=[go.Pie(
             labels=pie_labels,
@@ -123,12 +144,12 @@ def upload():
             legend=dict(
                 orientation="h",
                 yanchor="top",
-                y=-0.05,
+                y=-0.12,  # More gap between chart and legends
                 xanchor="center",
                 x=0.5
             ),
-            margin=dict(t=20, b=80, l=20, r=20),
-            height=400
+            margin=dict(t=10, b=legend_height + 30, l=10, r=10),  # Extra bottom margin for gap
+            height=chart_height
         )
         pie_chart_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 

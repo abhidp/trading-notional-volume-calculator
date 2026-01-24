@@ -31,18 +31,108 @@ main {
 
 /* Card hover effects */
 .card {
-    transition: box-shadow 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .card:hover {
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
-/* Summary cards */
-.card.bg-primary:hover,
-.card.bg-success:hover,
-.card.bg-info:hover {
-    transform: translateY(-2px);
+/* Summary cards - Enhanced hover with lift and glow */
+.summary-card {
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+                box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    cursor: default;
+}
+
+.summary-card:hover {
+    transform: translateY(-10px) scale(1.02) !important;
+    box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.25) !important;
+}
+
+.summary-card.bg-primary:hover {
+    box-shadow: 0 1.5rem 3rem rgba(13, 110, 253, 0.5) !important;
+}
+
+.summary-card.bg-success:hover {
+    box-shadow: 0 1.5rem 3rem rgba(25, 135, 84, 0.5) !important;
+}
+
+.summary-card.bg-info:hover {
+    box-shadow: 0 1.5rem 3rem rgba(13, 202, 240, 0.5) !important;
+}
+
+/* Staggered fade-in animation for cards */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeInUp 0.6s ease-out forwards;
+    opacity: 0;
+}
+
+.animate-delay-1 { animation-delay: 0.1s; }
+.animate-delay-2 { animation-delay: 0.2s; }
+.animate-delay-3 { animation-delay: 0.3s; }
+.animate-delay-4 { animation-delay: 0.4s; }
+.animate-delay-5 { animation-delay: 0.5s; }
+
+/* Count-up number styling */
+.count-up {
+    display: inline-block;
+}
+
+/* Progress bar animation */
+@keyframes progressGrow {
+    from { width: 0; }
+}
+
+.progress-animated .progress-bar {
+    animation: progressGrow 1.2s ease-out forwards;
+    animation-delay: 0.6s;
+    width: 0;
+}
+
+/* Staggered progress bar animation */
+tr:nth-child(1) .progress-bar { animation-delay: 0.7s; }
+tr:nth-child(2) .progress-bar { animation-delay: 0.8s; }
+tr:nth-child(3) .progress-bar { animation-delay: 0.9s; }
+tr:nth-child(4) .progress-bar { animation-delay: 1.0s; }
+tr:nth-child(5) .progress-bar { animation-delay: 1.1s; }
+tr:nth-child(6) .progress-bar { animation-delay: 1.2s; }
+tr:nth-child(7) .progress-bar { animation-delay: 1.3s; }
+tr:nth-child(8) .progress-bar { animation-delay: 1.4s; }
+
+/* Pulse animation for icons - using scale instead of opacity */
+@keyframes iconPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.7;
+    }
+}
+
+.summary-card .bi {
+    animation: iconPulse 2s ease-in-out infinite;
+    display: inline-block;
+}
+
+.summary-card:hover .bi {
+    animation: none;
+    transform: scale(1.15);
+    opacity: 0.9 !important;
+    transition: all 0.3s ease;
 }
 
 /* Table improvements */
@@ -68,8 +158,12 @@ main {
 
 /* Chart container */
 #pieChart {
-    min-height: 400px;
     width: 100%;
+}
+
+/* Pie chart segment hover glow effect */
+#pieChart .slice path {
+    transition: filter 0.3s ease;
 }
 
 /* Responsive adjustments */
