@@ -158,7 +158,6 @@ tr:nth-child(8) .progress-bar { animation-delay: 1.4s; }
 
 /* Chart container */
 #pieChart {
-    min-height: 400px;
     width: 100%;
 }
 

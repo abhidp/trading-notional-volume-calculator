@@ -8,6 +8,46 @@ from config import CONTRACT_SIZES, DEFAULT_FOREX_CONTRACT_SIZE
 from utils.fx_rates import get_fx_rate
 
 
+def is_supported_symbol(symbol: str) -> bool:
+    """
+    Check if a symbol is supported by this calculator.
+
+    Supported symbols:
+    - 6-character forex pairs (EURUSD, GBPJPY, etc.)
+    - Symbols in CONTRACT_SIZES (XAUUSD, BTCUSD, GER40, etc.)
+    - Symbols ending in 'USD' (commodities/crypto quoted in USD)
+
+    Unsupported (likely Stock CFDs):
+    - Short alphabetic symbols not in CONTRACT_SIZES (AAPL, TSLA, MSFT)
+    """
+    # Check if in predefined contract sizes
+    if symbol in CONTRACT_SIZES:
+        return True
+
+    # Check if it's a 6-character forex pair
+    if len(symbol) == 6:
+        base_ccy = symbol[:3]
+        quote_ccy = symbol[3:6]
+        currencies = {'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'}
+        if base_ccy in currencies and quote_ccy in currencies:
+            return True
+
+    # Check if it ends with USD (commodities/crypto like XAUUSD, BTCUSD)
+    if symbol.endswith('USD') and len(symbol) > 3:
+        return True
+
+    # Check for known index patterns (contains numbers like GER40, US30)
+    if any(char.isdigit() for char in symbol):
+        return True
+
+    # If it's a short alphabetic symbol (1-5 chars, all letters), likely a Stock CFD
+    if len(symbol) <= 5 and symbol.isalpha():
+        return False
+
+    # Default to supported for anything else
+    return True
+
+
 def get_contract_size(symbol: str) -> float:
     """Get contract size for a symbol"""
     # Check if symbol is in predefined sizes
@@ -76,7 +116,7 @@ def extract_base_currency(symbol: str, symbol_type: str) -> str:
     return 'USD'
 
 
-def calculate_notional(trades_df: pd.DataFrame) -> pd.DataFrame:
+def calculate_notional(trades_df: pd.DataFrame) -> tuple:
     """
     Calculate notional volume for each trade.
 
@@ -84,20 +124,30 @@ def calculate_notional(trades_df: pd.DataFrame) -> pd.DataFrame:
         trades_df: DataFrame with standardized trade columns
 
     Returns:
-        DataFrame with additional columns:
+        tuple: (DataFrame with calculated notional values, dict of skipped symbols)
+
+        DataFrame columns:
         - contract_size: float
         - base_currency: str
         - fx_rate: float
         - fx_source: str ('direct', 'api', 'api_cached', 'fallback')
         - notional_usd: float
+
+        Skipped dict format: {'AAPL': 3, 'TSLA': 2} (symbol: trade count)
     """
     results = []
+    skipped_symbols = {}
 
     for _, trade in trades_df.iterrows():
         symbol = trade['symbol']
         lots = trade['lots']
         close_price = trade['close_price']
         close_time = trade['close_time']
+
+        # Check if symbol is supported
+        if not is_supported_symbol(symbol):
+            skipped_symbols[symbol] = skipped_symbols.get(symbol, 0) + 1
+            continue
 
         # Determine symbol type and contract size
         symbol_type = get_symbol_type(symbol)
@@ -137,7 +187,7 @@ def calculate_notional(trades_df: pd.DataFrame) -> pd.DataFrame:
             'notional_usd': notional_usd,
         })
 
-    return pd.DataFrame(results)
+    return pd.DataFrame(results), skipped_symbols
 
 
 def summarize_by_symbol(calculated_df: pd.DataFrame) -> pd.DataFrame:

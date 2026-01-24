@@ -30,6 +30,7 @@
       <div class="container">
         <a class="navbar-brand" href="{{ url_for('index') }}">
           <i class="bi bi-graph-up-arrow me-2"></i>Notional Volume Calculator
+          <small class="text-muted fs-6 ms-2 d-none d-md-inline">for CFD Instruments</small>
         </a>
         <div class="ms-auto d-flex align-items-center">
           <a class="nav-link text-light" href="{{ url_for('help_page') }}">
@@ -45,6 +46,18 @@
         </div>
       </div>
     </nav>
+
+    <!-- CFD Disclaimer Banner -->
+    <div class="bg-warning-subtle border-bottom border-warning">
+      <div class="container py-2">
+        <small class="text-muted">
+          <i class="bi bi-info-circle me-1"></i>
+          <strong>Note:</strong> This calculator is designed for CFD (Contract for Difference) instruments
+          including Forex, Commodities, Indices, and Cryptocurrencies.
+          Results may not be accurate for Futures, Options, or exchange-traded securities.
+        </small>
+      </div>
+    </div>
 
     <main class="container my-4">
       {% with messages = get_flashed_messages(with_categories=true) %} {% if

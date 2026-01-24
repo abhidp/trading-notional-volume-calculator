@@ -123,7 +123,20 @@ Examples:
 
         # Calculate notional values
         print("Calculating notional volumes...")
-        calculated_df = calculate_notional(trades_df)
+        calculated_df, skipped_symbols = calculate_notional(trades_df)
+
+        # Show warning if any symbols were skipped
+        if skipped_symbols:
+            print("\n" + "=" * 60)
+            print("WARNING: Skipped unsupported symbols (likely Stock CFDs):")
+            for symbol, count in skipped_symbols.items():
+                print(f"  - {symbol}: {count} trades")
+            print("Stock CFD support coming soon. See TODO.md for details.")
+            print("=" * 60 + "\n")
+
+        if calculated_df.empty:
+            print("Error: No supported trades found. All trades were skipped.", file=sys.stderr)
+            return 1
 
         # Generate summaries
         summary_df = summarize_by_symbol(calculated_df)

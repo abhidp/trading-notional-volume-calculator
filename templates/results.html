@@ -51,7 +51,7 @@ Calculator{% endblock %} {% block content %}
               >
             </h3>
           </div>
-          <i class="bi bi-currency-dollar display-4 opacity-50"></i>
+          <i class="bi bi-currency-dollar display-6 opacity-50"></i>
         </div>
       </div>
     </div>
@@ -73,7 +73,7 @@ Calculator{% endblock %} {% block content %}
               >
             </h3>
           </div>
-          <i class="bi bi-arrow-left-right display-4 opacity-50"></i>
+          <i class="bi bi-arrow-left-right display-6 opacity-50"></i>
         </div>
       </div>
     </div>
@@ -95,7 +95,7 @@ Calculator{% endblock %} {% block content %}
               >
             </h3>
           </div>
-          <i class="bi bi-layers display-4 opacity-50"></i>
+          <i class="bi bi-layers display-6 opacity-50"></i>
         </div>
       </div>
     </div>
@@ -106,7 +106,7 @@ Calculator{% endblock %} {% block content %}
 <div class="row mb-4">
   <!-- Pie Chart -->
   <div class="col-lg-6 mb-4">
-    <div class="card h-100 animate-fade-in animate-delay-4">
+    <div class="card animate-fade-in animate-delay-4" id="pieChartCard">
       <div class="card-header">
         <h5 class="mb-0">
           <i class="bi bi-pie-chart me-2"></i>Distribution by Symbol
@@ -120,14 +120,14 @@ Calculator{% endblock %} {% block content %}
 
   <!-- Summary by Symbol -->
   <div class="col-lg-6 mb-4">
-    <div class="card h-100 animate-fade-in animate-delay-5">
+    <div class="card animate-fade-in animate-delay-5" id="summaryCard">
       <div class="card-header">
         <h5 class="mb-0">
           <i class="bi bi-list-ul me-2"></i>Summary by Symbol
         </h5>
       </div>
       <div class="card-body">
-        <div class="table-responsive">
+        <div class="table-responsive" id="summaryTableContainer">
           <table class="table table-hover">
             <thead>
               <tr>
@@ -335,6 +335,13 @@ Calculator{% endblock %} {% block content %}
   const labels = pieChartData.data[0].labels;
   const numSegments = values.length;
 
+  // Disable legend click to prevent hiding segments
+  pieChartData.layout.legend = {
+    ...pieChartData.layout.legend,
+    itemclick: false,
+    itemdoubleclick: false
+  };
+
   // Config - hide toolbar for cleaner look
   const config = {
     responsive: true,
@@ -348,17 +355,18 @@ Calculator{% endblock %} {% block content %}
     type: 'pie',
     labels: labels,
     values: values,
-    hole: 0.4,
+    hole: 0.3,
     textposition: 'inside',
     textinfo: 'percent+label',
     rotation: 90,
     direction: 'clockwise',
     pull: initialPull,
     opacity: 0,
+    hoverinfo: 'none',
     marker: {
       line: {
         color: '#ffffff',
-        width: 2
+        width: 0.5
       }
     }
   }];
@@ -406,9 +414,23 @@ Calculator{% endblock %} {% block content %}
     }, 600);
 
     // Add hover effect - segment pops out with color-matched glow when hovered
+    let unhoverTimeout = null;
+    let currentHoveredIndex = -1;
+
     pieChartEl.on('plotly_hover', function(data) {
-      if (!animationComplete) return;
+
+      // Clear any pending unhover
+      if (unhoverTimeout) {
+        clearTimeout(unhoverTimeout);
+        unhoverTimeout = null;
+      }
+
       const pointIndex = data.points[0].pointNumber;
+
+      // Skip if already hovering this segment
+      if (currentHoveredIndex === pointIndex) return;
+      currentHoveredIndex = pointIndex;
+
       const pullValues = new Array(numSegments).fill(0);
       pullValues[pointIndex] = 0.08; // Pull out hovered segment
 
@@ -419,7 +441,7 @@ Calculator{% endblock %} {% block content %}
           // Get the fill color of this segment
           const fillColor = path.style.fill || window.getComputedStyle(path).fill;
           // Apply color-matched glow
-          path.style.filter = `drop-shadow(0 0 12px ${fillColor}) drop-shadow(0 0 20px ${fillColor})`;
+          path.style.filter = `drop-shadow(0 0 16px ${fillColor})`;
         } else {
           path.style.filter = '';
         }
@@ -432,21 +454,59 @@ Calculator{% endblock %} {% block content %}
       }], pieChartData.layout, config);
     });
 
-    // Reset on unhover
+    // Reset on unhover with debounce to prevent jittering
     pieChartEl.on('plotly_unhover', function() {
-      if (!animationComplete) return;
 
-      // Remove glow effect
-      pieChartEl.querySelectorAll('.slice path').forEach(path => {
-        path.style.filter = '';
-      });
+      // Debounce the unhover to prevent jittering when cursor is in the gap
+      unhoverTimeout = setTimeout(() => {
+        currentHoveredIndex = -1;
 
-      Plotly.react('pieChart', [{
-        ...chartData[0],
-        opacity: 1,
-        pull: new Array(numSegments).fill(0)
-      }], pieChartData.layout, config);
+        // Remove glow effect
+        pieChartEl.querySelectorAll('.slice path').forEach(path => {
+          path.style.filter = '';
+        });
+
+        Plotly.react('pieChart', [{
+          ...chartData[0],
+          opacity: 1,
+          pull: new Array(numSegments).fill(0)
+        }], pieChartData.layout, config);
+      }, 150);
     });
   });
+
+  // Match card heights dynamically - pie chart is the reference
+  function matchCardHeights() {
+    const pieCard = document.getElementById('pieChartCard');
+    const summaryCard = document.getElementById('summaryCard');
+    const summaryTableContainer = document.getElementById('summaryTableContainer');
+
+    // Reset to get natural sizes
+    pieCard.style.height = 'auto';
+    summaryCard.style.height = 'auto';
+    summaryTableContainer.style.maxHeight = 'none';
+
+    // Pie chart card is the reference height
+    const pieHeight = pieCard.offsetHeight;
+
+    // Set summary card to match pie chart height
+    summaryCard.style.height = pieHeight + 'px';
+
+    // Calculate available height for table (card height minus header and padding)
+    const summaryHeader = summaryCard.querySelector('.card-header');
+    const summaryBody = summaryCard.querySelector('.card-body');
+    const headerHeight = summaryHeader.offsetHeight;
+    const bodyPadding = 32; // card-body padding (1rem top + 1rem bottom)
+    const tableMaxHeight = pieHeight - headerHeight - bodyPadding;
+
+    summaryTableContainer.style.maxHeight = tableMaxHeight + 'px';
+    summaryTableContainer.style.overflowY = 'auto';
+  }
+
+  // Run shortly after chart renders (just need initial layout, not full animation)
+  setTimeout(matchCardHeights, 100);
+
+  // Also match on window resize
+  window.addEventListener('resize', matchCardHeights);
 </script>
 {% endblock %}
