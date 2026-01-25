@@ -477,7 +477,7 @@ Calculator{% endblock %} {% block content %}
     };
 
     // Start with all segments pulled out and semi-transparent
-    const initialPull = new Array(numSegments).fill(0.15);
+    const initialPull = new Array(numSegments).fill(0.08);
 
     const chartData = [{
       type: 'pie',
@@ -519,7 +519,7 @@ Calculator{% endblock %} {% block content %}
           // Calculate pull values - segments pop in with staggered timing
           const pullValues = initialPull.map((_, i) => {
             // Each segment starts animation slightly later
-            const segmentDelay = i * 0.08;
+            const segmentDelay = i * 0.06;
             const segmentProgress = Math.max(0, Math.min(1, (progress - segmentDelay) / (1 - segmentDelay)));
             const segmentEased = 1 + 2.7 * Math.pow(segmentProgress - 1, 3) + 1.7 * Math.pow(segmentProgress - 1, 2);
             return 0.15 * (1 - segmentEased);
