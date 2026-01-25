@@ -1,9 +1,11 @@
-import pandas as pd
-import sys
 import os
+import sys
+
+import pandas as pd
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from config import CONTRACT_SIZES, DEFAULT_FOREX_CONTRACT_SIZE
 from utils.fx_rates import get_fx_rate
 
@@ -28,12 +30,12 @@ def is_supported_symbol(symbol: str) -> bool:
     if len(symbol) == 6:
         base_ccy = symbol[:3]
         quote_ccy = symbol[3:6]
-        currencies = {'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'}
+        currencies = {"USD", "EUR", "GBP", "JPY", "AUD", "NZD", "CAD", "CHF"}
         if base_ccy in currencies and quote_ccy in currencies:
             return True
 
     # Check if it ends with USD (commodities/crypto like XAUUSD, BTCUSD)
-    if symbol.endswith('USD') and len(symbol) > 3:
+    if symbol.endswith("USD") and len(symbol) > 3:
         return True
 
     # Check for known index patterns (contains numbers like GER40, US30)
@@ -41,11 +43,8 @@ def is_supported_symbol(symbol: str) -> bool:
         return True
 
     # If it's a short alphabetic symbol (1-5 chars, all letters), likely a Stock CFD
-    if len(symbol) <= 5 and symbol.isalpha():
-        return False
-
-    # Default to supported for anything else
-    return True
+    # Otherwise, default to supported
+    return not (len(symbol) <= 5 and symbol.isalpha())
 
 
 def get_contract_size(symbol: str) -> float:
@@ -74,46 +73,44 @@ def get_symbol_type(symbol: str) -> str:
         quote_ccy = symbol[3:6]
 
         # Common currency codes
-        currencies = {'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'}
+        currencies = {"USD", "EUR", "GBP", "JPY", "AUD", "NZD", "CAD", "CHF"}
 
         if base_ccy in currencies and quote_ccy in currencies:
-            if base_ccy == 'USD':
-                return 'forex_usd_base'
-            elif quote_ccy == 'USD':
-                return 'forex_usd_quote'
+            if base_ccy == "USD":
+                return "forex_usd_base"
+            elif quote_ccy == "USD":
+                return "forex_usd_quote"
             else:
-                return 'forex_cross'
+                return "forex_cross"
 
-    return 'commodity'
+    return "commodity"
 
 
 def extract_base_currency(symbol: str, symbol_type: str) -> str:
     """
     Extract base currency from a symbol for FX rate lookup.
     """
-    if symbol_type == 'forex_usd_base':
-        return 'USD'
-    elif symbol_type == 'forex_usd_quote':
-        return 'USD'
-    elif symbol_type == 'forex_cross':
+    if symbol_type == "forex_usd_base" or symbol_type == "forex_usd_quote":
+        return "USD"
+    elif symbol_type == "forex_cross":
         return symbol[:3]  # First 3 chars (e.g., GBP from GBPJPY)
 
     # For commodities/indices
-    if symbol.endswith('USD'):
-        return 'USD'
+    if symbol.endswith("USD"):
+        return "USD"
 
     # Index instruments with specific currencies
     index_currencies = {
-        'GER40': 'EUR',
-        'GER30': 'EUR',
-        'UK100': 'GBP',
-        'EU50': 'EUR',
-        'SPOTCRUDE': 'USD',
+        "GER40": "EUR",
+        "GER30": "EUR",
+        "UK100": "GBP",
+        "EU50": "EUR",
+        "SPOTCRUDE": "USD",
     }
     if symbol in index_currencies:
         return index_currencies[symbol]
 
-    return 'USD'
+    return "USD"
 
 
 def calculate_notional(trades_df: pd.DataFrame) -> tuple:
@@ -139,10 +136,10 @@ def calculate_notional(trades_df: pd.DataFrame) -> tuple:
     skipped_symbols = {}
 
     for _, trade in trades_df.iterrows():
-        symbol = trade['symbol']
-        lots = trade['lots']
-        close_price = trade['close_price']
-        close_time = trade['close_time']
+        symbol = trade["symbol"]
+        lots = trade["lots"]
+        close_price = trade["close_price"]
+        close_time = trade["close_time"]
 
         # Check if symbol is supported
         if not is_supported_symbol(symbol):
@@ -157,19 +154,19 @@ def calculate_notional(trades_df: pd.DataFrame) -> tuple:
         base_currency = extract_base_currency(symbol, symbol_type)
 
         # Get FX rate
-        trade_date = close_time.strftime('%Y-%m-%d') if hasattr(close_time, 'strftime') else str(close_time)
+        trade_date = close_time.strftime("%Y-%m-%d") if hasattr(close_time, "strftime") else str(close_time)
         fx_rate, fx_source = get_fx_rate(base_currency, trade_date)
 
         # Calculate notional based on symbol type
-        if symbol_type == 'forex_usd_base':
+        if symbol_type == "forex_usd_base":
             # USDXXX pairs (e.g., USDJPY, USDCAD)
             # Notional = lots × 100,000 (base is already USD)
             notional_usd = lots * contract_size
-        elif symbol_type == 'forex_usd_quote':
+        elif symbol_type == "forex_usd_quote":
             # XXXUSD pairs (e.g., EURUSD, AUDUSD)
             # Notional = lots × 100,000 × close_price (close_price IS the USD rate)
             notional_usd = lots * contract_size * close_price
-        elif symbol_type == 'forex_cross':
+        elif symbol_type == "forex_cross":
             # XXXYYY cross pairs (e.g., GBPJPY, EURJPY, AUDCAD)
             # Notional = lots × 100,000 × base_to_USD rate
             notional_usd = lots * contract_size * fx_rate
@@ -178,14 +175,16 @@ def calculate_notional(trades_df: pd.DataFrame) -> tuple:
             # Notional = lots × contract_size × close_price × fx_rate
             notional_usd = lots * contract_size * close_price * fx_rate
 
-        results.append({
-            **trade.to_dict(),
-            'contract_size': contract_size,
-            'base_currency': base_currency,
-            'fx_rate': fx_rate,
-            'fx_source': fx_source,
-            'notional_usd': notional_usd,
-        })
+        results.append(
+            {
+                **trade.to_dict(),
+                "contract_size": contract_size,
+                "base_currency": base_currency,
+                "fx_rate": fx_rate,
+                "fx_source": fx_source,
+                "notional_usd": notional_usd,
+            }
+        )
 
     return pd.DataFrame(results), skipped_symbols
 
@@ -201,20 +200,19 @@ def summarize_by_symbol(calculated_df: pd.DataFrame) -> pd.DataFrame:
     - percentage
     """
     # Use named aggregation for explicit column naming
-    summary = calculated_df.groupby('symbol', as_index=False).agg(
-        total_lots=('lots', 'sum'),
-        notional_usd=('notional_usd', 'sum')
+    summary = calculated_df.groupby("symbol", as_index=False).agg(
+        total_lots=("lots", "sum"), notional_usd=("notional_usd", "sum")
     )
 
     # Ensure notional_usd is float type
-    summary['notional_usd'] = summary['notional_usd'].astype(float)
+    summary["notional_usd"] = summary["notional_usd"].astype(float)
 
     # Calculate percentage
-    total_notional = summary['notional_usd'].sum()
-    summary['percentage'] = (summary['notional_usd'] / total_notional * 100) if total_notional > 0 else 0
+    total_notional = summary["notional_usd"].sum()
+    summary["percentage"] = (summary["notional_usd"] / total_notional * 100) if total_notional > 0 else 0
 
     # Sort by notional descending
-    summary = summary.sort_values('notional_usd', ascending=False).reset_index(drop=True)
+    summary = summary.sort_values("notional_usd", ascending=False).reset_index(drop=True)
 
     return summary
 
@@ -225,10 +223,10 @@ def get_fx_source_summary(calculated_df: pd.DataFrame) -> dict:
 
     Returns dict with counts for each source type.
     """
-    source_counts = calculated_df['fx_source'].value_counts().to_dict()
+    source_counts = calculated_df["fx_source"].value_counts().to_dict()
     return {
-        'direct': source_counts.get('direct', 0),
-        'api': source_counts.get('api', 0),
-        'api_cached': source_counts.get('api_cached', 0),
-        'fallback': source_counts.get('fallback', 0),
+        "direct": source_counts.get("direct", 0),
+        "api": source_counts.get("api", 0),
+        "api_cached": source_counts.get("api_cached", 0),
+        "fallback": source_counts.get("fallback", 0),
     }

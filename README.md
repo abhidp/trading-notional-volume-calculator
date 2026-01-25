@@ -24,35 +24,39 @@ A tool to calculate total notional trading volume in USD from trade history expo
 
 ## Supported Platforms
 
-| Platform | File Format | Export Location |
-|----------|-------------|-----------------|
-| MetaTrader 5 | `.xlsx` | History tab → Right-click → Report |
-| cTrader | `.xlsx`, `.csv` | History → Statement/Export |
+| Platform     | File Format     | Export Location                    |
+| ------------ | --------------- | ---------------------------------- |
+| MetaTrader 5 | `.xlsx`         | History tab → Right-click → Report |
+| cTrader      | `.xlsx`, `.csv` | History → Statement/Export         |
 
 ## Live Demo
 
-Try the web app at: **[trading-notional-volume-calculator.vercel.app](https://trading-notional-volume-calculator.vercel.app)**
+Try the web app at: **[https://notionalvolume.vercel.app/](https://notionalvolume.vercel.app/)**
 
 ## Installation
 
 ### Prerequisites
+
 - Python 3.10 or higher
 
 ### Setup
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/abhidp/trading-notional-volume-calculator.git
 cd trading-notional-volume-calculator
 ```
 
 2. Create a virtual environment (recommended):
+
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 3. Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -62,11 +66,13 @@ pip install -r requirements.txt
 ### Web UI (Recommended)
 
 1. Start the Flask server:
+
 ```bash
 python app.py
 ```
 
 2. Open your browser and navigate to:
+
 ```
 http://127.0.0.1:5001
 ```
@@ -74,6 +80,7 @@ http://127.0.0.1:5001
 3. Upload your trade history file and view the results
 
 #### Web UI Features:
+
 - **Drag & drop** file upload
 - **Auto-detection** of trading platform
 - **Interactive pie chart** showing volume distribution by symbol
@@ -91,21 +98,21 @@ python cli.py <input_file> [options]
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
-| `-p, --platform` | Specify platform (`mt5` or `ctrader`). Default: auto-detect |
-| `-o, --output` | Output file path for the report |
-| `-f, --format` | Output format: `csv` or `json` (default: `csv`) |
-| `--list-platforms` | List all supported platforms |
+| Option             | Description                                                 |
+| ------------------ | ----------------------------------------------------------- |
+| `-p, --platform`   | Specify platform (`mt5` or `ctrader`). Default: auto-detect |
+| `-o, --output`     | Output file path for the report                             |
+| `-f, --format`     | Output format: `csv` or `json` (default: `csv`)             |
+| `--list-platforms` | List all supported platforms                                |
 
 #### Date Filtering Options
 
-| Option | Description |
-|--------|-------------|
-| `-F, --from` | Start date in DD-MM-YYYY format |
-| `-T, --to` | End date in DD-MM-YYYY format |
-| `--last N` | Filter to last N days (e.g., `--last 7`) |
-| `--this-month` | Filter to current calendar month |
+| Option         | Description                              |
+| -------------- | ---------------------------------------- |
+| `-F, --from`   | Start date in DD-MM-YYYY format          |
+| `-T, --to`     | End date in DD-MM-YYYY format            |
+| `--last N`     | Filter to last N days (e.g., `--last 7`) |
+| `--this-month` | Filter to current calendar month         |
 
 #### Examples
 
@@ -145,13 +152,13 @@ python cli.py trades.xlsx --last 30 --format json --output monthly_report.json
 
 We understand that trading history contains sensitive information. Here's how we handle your data:
 
-| Aspect | How We Handle It |
-|--------|------------------|
-| **Storage** | Files are processed in memory and never saved to servers |
-| **Tracking** | No personal information, account numbers, or broker details are collected |
-| **Sharing** | Your data is never shared with third parties |
-| **Session** | All data is cleared when you close your browser |
-| **Transparency** | Code is open-source and publicly auditable on GitHub |
+| Aspect           | How We Handle It                                                          |
+| ---------------- | ------------------------------------------------------------------------- |
+| **Storage**      | Files are processed in memory and never saved to servers                  |
+| **Tracking**     | No personal information, account numbers, or broker details are collected |
+| **Sharing**      | Your data is never shared with third parties                              |
+| **Session**      | All data is cleared when you close your browser                           |
+| **Transparency** | Code is open-source and publicly auditable on GitHub                      |
 
 **Prefer complete privacy?** Use the CLI version - your data never leaves your machine.
 
@@ -161,36 +168,36 @@ We understand that trading history contains sensitive information. Here's how we
 
 Notional volume represents the total market value of a leveraged position. The formula varies by instrument type:
 
-| Instrument Type | Examples | Formula |
-|-----------------|----------|---------|
-| USD Base Pairs | USDJPY, USDCAD | `Lots × 100,000` |
-| USD Quote Pairs | EURUSD, GBPUSD | `Lots × 100,000 × Close Price` |
-| Cross Pairs | GBPJPY, EURAUD | `Lots × 100,000 × Base-to-USD Rate` |
-| Commodities | XAUUSD, XAGUSD | `Lots × Contract Size × Close Price` |
-| Indices | GER40, US500 | `Lots × Contract Size × Close Price × FX Rate` |
-| Crypto | BTCUSD, ETHUSD | `Lots × Close Price` |
+| Instrument Type | Examples       | Formula                                        |
+| --------------- | -------------- | ---------------------------------------------- |
+| USD Base Pairs  | USDJPY, USDCAD | `Lots × 100,000`                               |
+| USD Quote Pairs | EURUSD, GBPUSD | `Lots × 100,000 × Close Price`                 |
+| Cross Pairs     | GBPJPY, EURAUD | `Lots × 100,000 × Base-to-USD Rate`            |
+| Commodities     | XAUUSD, XAGUSD | `Lots × Contract Size × Close Price`           |
+| Indices         | GER40, US500   | `Lots × Contract Size × Close Price × FX Rate` |
+| Crypto          | BTCUSD, ETHUSD | `Lots × Close Price`                           |
 
 ### Contract Sizes
 
-| Instrument | Contract Size |
-|------------|---------------|
-| Forex Pairs | 100,000 units |
-| Gold (XAUUSD) | 100 troy ounces |
-| Silver (XAGUSD) | 5,000 troy ounces |
-| Crude Oil | 1,000 barrels |
-| Crypto (BTC/ETH) | 1 unit |
-| Indices | 1 unit (varies) |
+| Instrument       | Contract Size     |
+| ---------------- | ----------------- |
+| Forex Pairs      | 100,000 units     |
+| Gold (XAUUSD)    | 100 troy ounces   |
+| Silver (XAGUSD)  | 5,000 troy ounces |
+| Crude Oil        | 1,000 barrels     |
+| Crypto (BTC/ETH) | 1 unit            |
+| Indices          | 1 unit (varies)   |
 
 ### FX Rate Sources
 
 The calculator uses historical exchange rates for accurate USD conversion:
 
-| Source | Badge | Description |
-|--------|-------|-------------|
-| Direct | `direct` | Instrument already quoted in USD (rate = 1.0) |
-| API | `api` | Fresh rate from [Frankfurter API](https://www.frankfurter.app/) |
-| Cached | `cached` | Previously fetched rate reused from memory |
-| Fallback | `fallback` | Approximate static rate (when API unavailable) |
+| Source   | Badge      | Description                                                     |
+| -------- | ---------- | --------------------------------------------------------------- |
+| Direct   | `direct`   | Instrument already quoted in USD (rate = 1.0)                   |
+| API      | `api`      | Fresh rate from [Frankfurter API](https://www.frankfurter.app/) |
+| Cached   | `cached`   | Previously fetched rate reused from memory                      |
+| Fallback | `fallback` | Approximate static rate (when API unavailable)                  |
 
 ## Project Structure
 
@@ -254,16 +261,19 @@ After processing a trade history file, you'll see:
 ### Setting Up Development Environment
 
 1. Install development dependencies:
+
 ```bash
 pip install -r requirements-dev.txt
 ```
 
 2. Install pre-commit hooks (runs linting before each commit):
+
 ```bash
 pre-commit install
 ```
 
 3. Run linting manually:
+
 ```bash
 ruff check .        # Check for issues
 ruff check . --fix  # Auto-fix issues
@@ -273,6 +283,7 @@ ruff format .       # Format code
 ### CI/CD
 
 This project uses GitHub Actions for:
+
 - **Lint** - Ruff linter runs on all PRs
 - **CodeQL** - Security vulnerability scanning (free for public repos)
 - **Snyk** - Dependency vulnerability scanning (free tier)

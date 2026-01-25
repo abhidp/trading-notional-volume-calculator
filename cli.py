@@ -17,17 +17,17 @@ from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 
-# Suppress openpyxl style warning for Excel files without default styles
-warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
-
+from utils.calculator import calculate_notional, get_fx_source_summary, summarize_by_symbol
 from utils.parsers import detect_platform, get_parser, list_platforms
-from utils.calculator import calculate_notional, summarize_by_symbol, get_fx_source_summary
 from utils.report_generator import (
-    print_console_report,
     generate_csv_report,
     generate_json_report,
     get_default_output_path,
+    print_console_report,
 )
+
+# Suppress openpyxl style warning for Excel files without default styles
+warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
 
 def validate_file(filepath: str) -> Path:
@@ -37,7 +37,7 @@ def validate_file(filepath: str) -> Path:
     if not path.exists():
         raise FileNotFoundError(f"File not found: {filepath}")
 
-    if path.suffix.lower() not in ['.xlsx', '.csv']:
+    if path.suffix.lower() not in [".xlsx", ".csv"]:
         raise ValueError(f"Unsupported file format: {path.suffix}. Supported formats: .xlsx, .csv")
 
     return path
@@ -46,9 +46,9 @@ def validate_file(filepath: str) -> Path:
 def parse_date(date_str: str) -> datetime:
     """Parse date string in DD-MM-YYYY format"""
     try:
-        return datetime.strptime(date_str, '%d-%m-%Y')
-    except ValueError:
-        raise ValueError(f"Invalid date format: {date_str}. Use DD-MM-YYYY format (e.g., 25-01-2026)")
+        return datetime.strptime(date_str, "%d-%m-%Y")
+    except ValueError as err:
+        raise ValueError(f"Invalid date format: {date_str}. Use DD-MM-YYYY format (e.g., 25-01-2026)") from err
 
 
 def get_date_filter(args) -> tuple[datetime | None, datetime | None, str | None]:
@@ -59,11 +59,9 @@ def get_date_filter(args) -> tuple[datetime | None, datetime | None, str | None]
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
     # Check for conflicting options
-    filter_options = sum([
-        args.from_date is not None or args.to_date is not None,
-        args.last is not None,
-        args.this_month
-    ])
+    filter_options = sum(
+        [args.from_date is not None or args.to_date is not None, args.last is not None, args.this_month]
+    )
 
     if filter_options > 1:
         raise ValueError("Cannot combine --from/--to with --last or --this-month. Use one filter type.")
@@ -109,19 +107,19 @@ def filter_trades_by_date(df, start_date: datetime | None, end_date: datetime | 
 
     # Ensure close_time is datetime
     df = df.copy()
-    df['close_time'] = pd.to_datetime(df['close_time'])
+    df["close_time"] = pd.to_datetime(df["close_time"])
 
     # Create date-only column for comparison
-    df['_close_date'] = df['close_time'].dt.normalize()
+    df["_close_date"] = df["close_time"].dt.normalize()
 
     if start_date and end_date:
-        mask = (df['_close_date'] >= pd.Timestamp(start_date)) & (df['_close_date'] <= pd.Timestamp(end_date))
+        mask = (df["_close_date"] >= pd.Timestamp(start_date)) & (df["_close_date"] <= pd.Timestamp(end_date))
     elif start_date:
-        mask = df['_close_date'] >= pd.Timestamp(start_date)
+        mask = df["_close_date"] >= pd.Timestamp(start_date)
     else:
-        mask = df['_close_date'] <= pd.Timestamp(end_date)
+        mask = df["_close_date"] <= pd.Timestamp(end_date)
 
-    filtered = df[mask].drop(columns=['_close_date'])
+    filtered = df[mask].drop(columns=["_close_date"])
     return filtered
 
 
@@ -144,64 +142,27 @@ Date Filtering:
   python cli.py trades.xlsx --from 01-01-2026  # From specific date
   python cli.py trades.xlsx --to 31-01-2026    # Until specific date
   python cli.py trades.xlsx --from 01-01-2026 --to 15-01-2026  # Date range
-        """
+        """,
     )
 
-    parser.add_argument(
-        'filepath',
-        nargs='?',
-        help='Path to the trade history export file (.xlsx or .csv)'
-    )
+    parser.add_argument("filepath", nargs="?", help="Path to the trade history export file (.xlsx or .csv)")
 
-    parser.add_argument(
-        '--platform', '-p',
-        choices=['mt5', 'ctrader'],
-        help='Trading platform (default: auto-detect)'
-    )
+    parser.add_argument("--platform", "-p", choices=["mt5", "ctrader"], help="Trading platform (default: auto-detect)")
 
-    parser.add_argument(
-        '--output', '-o',
-        help='Output file path for the report'
-    )
+    parser.add_argument("--output", "-o", help="Output file path for the report")
 
-    parser.add_argument(
-        '--format', '-f',
-        choices=['csv', 'json'],
-        default='csv',
-        help='Output format (default: csv)'
-    )
+    parser.add_argument("--format", "-f", choices=["csv", "json"], default="csv", help="Output format (default: csv)")
 
-    parser.add_argument(
-        '--list-platforms',
-        action='store_true',
-        help='List supported trading platforms'
-    )
+    parser.add_argument("--list-platforms", action="store_true", help="List supported trading platforms")
 
     # Date filter arguments
-    parser.add_argument(
-        '--from', '-F',
-        dest='from_date',
-        help='Start date for filtering (DD-MM-YYYY format)'
-    )
+    parser.add_argument("--from", "-F", dest="from_date", help="Start date for filtering (DD-MM-YYYY format)")
 
-    parser.add_argument(
-        '--to', '-T',
-        dest='to_date',
-        help='End date for filtering (DD-MM-YYYY format)'
-    )
+    parser.add_argument("--to", "-T", dest="to_date", help="End date for filtering (DD-MM-YYYY format)")
 
-    parser.add_argument(
-        '--last',
-        type=int,
-        metavar='DAYS',
-        help='Filter to last N days (e.g., --last 7 for last week)'
-    )
+    parser.add_argument("--last", type=int, metavar="DAYS", help="Filter to last N days (e.g., --last 7 for last week)")
 
-    parser.add_argument(
-        '--this-month',
-        action='store_true',
-        help='Filter to current calendar month'
-    )
+    parser.add_argument("--this-month", action="store_true", help="Filter to current calendar month")
 
     args = parser.parse_args()
 
@@ -225,7 +186,7 @@ Date Filtering:
         filename = filepath.name
 
         # Read file into memory (same approach as web app)
-        with open(filepath, 'rb') as f:
+        with open(filepath, "rb") as f:
             file_data = BytesIO(f.read())
 
         # Get parser (auto-detect or specified)
@@ -287,7 +248,7 @@ Date Filtering:
             platform_name=platform_name,
             filepath=str(filepath),
             auto_detected=auto_detected,
-            date_filter=filter_desc
+            date_filter=filter_desc,
         )
 
         # Export to file if requested
@@ -295,20 +256,20 @@ Date Filtering:
             output_path = args.output
         else:
             # Generate default output path in outputs directory
-            output_dir = Path(__file__).parent / 'outputs'
+            output_dir = Path(__file__).parent / "outputs"
             output_dir.mkdir(exist_ok=True)
             output_path = str(output_dir / get_default_output_path(args.format))
 
-        if args.format == 'csv':
+        if args.format == "csv":
             generate_csv_report(calculated_df, output_path)
             print(f"CSV report saved to: {output_path}")
-        elif args.format == 'json':
+        elif args.format == "json":
             generate_json_report(
                 calculated_df=calculated_df,
                 summary_df=summary_df,
                 fx_summary=fx_summary,
                 platform_name=platform_name,
-                output_path=output_path
+                output_path=output_path,
             )
             print(f"JSON report saved to: {output_path}")
 
@@ -323,9 +284,10 @@ Date Filtering:
     except Exception as e:
         print(f"Unexpected error: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
