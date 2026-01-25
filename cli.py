@@ -13,6 +13,8 @@ Usage:
 import argparse
 import sys
 import warnings
+from datetime import datetime, timedelta
+from io import BytesIO
 from pathlib import Path
 
 # Suppress openpyxl style warning for Excel files without default styles
@@ -41,17 +43,107 @@ def validate_file(filepath: str) -> Path:
     return path
 
 
+def parse_date(date_str: str) -> datetime:
+    """Parse date string in DD-MM-YYYY format"""
+    try:
+        return datetime.strptime(date_str, '%d-%m-%Y')
+    except ValueError:
+        raise ValueError(f"Invalid date format: {date_str}. Use DD-MM-YYYY format (e.g., 25-01-2026)")
+
+
+def get_date_filter(args) -> tuple[datetime | None, datetime | None, str | None]:
+    """
+    Determine date filter from command line arguments.
+    Returns (start_date, end_date, filter_description) or (None, None, None) if no filter.
+    """
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Check for conflicting options
+    filter_options = sum([
+        args.from_date is not None or args.to_date is not None,
+        args.last is not None,
+        args.this_month
+    ])
+
+    if filter_options > 1:
+        raise ValueError("Cannot combine --from/--to with --last or --this-month. Use one filter type.")
+
+    # Custom date range
+    if args.from_date or args.to_date:
+        start_date = parse_date(args.from_date) if args.from_date else None
+        end_date = parse_date(args.to_date) if args.to_date else None
+
+        if start_date and end_date and start_date > end_date:
+            raise ValueError("Start date must be before or equal to end date")
+
+        if start_date and end_date:
+            desc = f"{args.from_date} to {args.to_date}"
+        elif start_date:
+            desc = f"from {args.from_date}"
+        else:
+            desc = f"until {args.to_date}"
+
+        return start_date, end_date, desc
+
+    # Last N days
+    if args.last:
+        if args.last <= 0:
+            raise ValueError("--last value must be a positive number")
+        start_date = today - timedelta(days=args.last - 1)
+        return start_date, today, f"last {args.last} days"
+
+    # This month
+    if args.this_month:
+        start_date = today.replace(day=1)
+        return start_date, today, "this month"
+
+    return None, None, None
+
+
+def filter_trades_by_date(df, start_date: datetime | None, end_date: datetime | None):
+    """Filter trades dataframe by date range based on close_time"""
+    import pandas as pd
+
+    if start_date is None and end_date is None:
+        return df
+
+    # Ensure close_time is datetime
+    df = df.copy()
+    df['close_time'] = pd.to_datetime(df['close_time'])
+
+    # Create date-only column for comparison
+    df['_close_date'] = df['close_time'].dt.normalize()
+
+    if start_date and end_date:
+        mask = (df['_close_date'] >= pd.Timestamp(start_date)) & (df['_close_date'] <= pd.Timestamp(end_date))
+    elif start_date:
+        mask = df['_close_date'] >= pd.Timestamp(start_date)
+    else:
+        mask = df['_close_date'] <= pd.Timestamp(end_date)
+
+    filtered = df[mask].drop(columns=['_close_date'])
+    return filtered
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Calculate notional trading volume from trade history exports.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python cli.py trades.xlsx                    # Auto-detect platform
+  python cli.py trades.xlsx                    # Auto-detect platform, all trades
   python cli.py trades.xlsx --platform mt5     # Specify MT5 platform
   python cli.py trades.xlsx -o report.csv      # Export to CSV
   python cli.py trades.xlsx --format json      # Export to JSON
   python cli.py --list-platforms               # Show supported platforms
+
+Date Filtering:
+  python cli.py trades.xlsx --last 7           # Last 7 days
+  python cli.py trades.xlsx --last 30          # Last 30 days
+  python cli.py trades.xlsx --this-month       # Current calendar month
+  python cli.py trades.xlsx --from 01-01-2026  # From specific date
+  python cli.py trades.xlsx --to 31-01-2026    # Until specific date
+  python cli.py trades.xlsx --from 01-01-2026 --to 15-01-2026  # Date range
         """
     )
 
@@ -85,6 +177,32 @@ Examples:
         help='List supported trading platforms'
     )
 
+    # Date filter arguments
+    parser.add_argument(
+        '--from', '-F',
+        dest='from_date',
+        help='Start date for filtering (DD-MM-YYYY format)'
+    )
+
+    parser.add_argument(
+        '--to', '-T',
+        dest='to_date',
+        help='End date for filtering (DD-MM-YYYY format)'
+    )
+
+    parser.add_argument(
+        '--last',
+        type=int,
+        metavar='DAYS',
+        help='Filter to last N days (e.g., --last 7 for last week)'
+    )
+
+    parser.add_argument(
+        '--this-month',
+        action='store_true',
+        help='Filter to current calendar month'
+    )
+
     args = parser.parse_args()
 
     # Handle --list-platforms
@@ -104,12 +222,17 @@ Examples:
     try:
         # Validate file
         filepath = validate_file(args.filepath)
+        filename = filepath.name
+
+        # Read file into memory (same approach as web app)
+        with open(filepath, 'rb') as f:
+            file_data = BytesIO(f.read())
 
         # Get parser (auto-detect or specified)
         auto_detected = args.platform is None
         if auto_detected:
-            print(f"Auto-detecting platform for: {filepath.name}")
-            trade_parser = detect_platform(str(filepath))
+            print(f"Auto-detecting platform for: {filename}")
+            trade_parser = detect_platform(file_data, filename)
         else:
             trade_parser = get_parser(args.platform)
 
@@ -118,8 +241,22 @@ Examples:
 
         # Parse trades
         print("Parsing trade history...")
-        trades_df = trade_parser.parse(str(filepath))
-        print(f"Found {len(trades_df)} trades")
+        file_data.seek(0)  # Reset to beginning after detection
+        trades_df = trade_parser.parse(file_data, filename)
+        total_trades = len(trades_df)
+        print(f"Found {total_trades} trades")
+
+        # Apply date filter if specified
+        start_date, end_date, filter_desc = get_date_filter(args)
+        if filter_desc:
+            print(f"Applying date filter: {filter_desc}")
+            trades_df = filter_trades_by_date(trades_df, start_date, end_date)
+            filtered_count = len(trades_df)
+            print(f"Filtered to {filtered_count} trades (of {total_trades} total)")
+
+            if trades_df.empty:
+                print("Error: No trades found in the specified date range.", file=sys.stderr)
+                return 1
 
         # Calculate notional values
         print("Calculating notional volumes...")
@@ -149,7 +286,8 @@ Examples:
             fx_summary=fx_summary,
             platform_name=platform_name,
             filepath=str(filepath),
-            auto_detected=auto_detected
+            auto_detected=auto_detected,
+            date_filter=filter_desc
         )
 
         # Export to file if requested

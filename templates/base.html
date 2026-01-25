@@ -28,11 +28,10 @@
   <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container">
-        <a class="navbar-brand" href="{{ url_for('index') }}">
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
           <i class="bi bi-graph-up-arrow me-2"></i>Notional Volume Calculator
-          <small class="text-muted fs-6 ms-2 d-none d-md-inline"
-            >for CFD Instruments</small
-          >
+          <span class="badge bg-success bg-opacity-75 ms-2 fw-normal d-none d-sm-inline" style="font-size: 0.6rem; vertical-align: middle;">open-source</span>
+          <small class="text-muted fs-6 ms-2 d-none d-lg-inline">for CFD Instruments</small>
         </a>
         <div class="ms-auto d-flex align-items-center">
           <a class="nav-link text-light" href="{{ url_for('help_page') }}">
