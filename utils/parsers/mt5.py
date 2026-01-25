@@ -140,9 +140,10 @@ class MT5Parser(BaseParser):
         close_price_col = self._get_column(df, 'close_price')
 
         # Map columns to standardized format
+        # Use dayfirst=True to interpret dates as DD/MM/YYYY (non-American format)
         standardized = pd.DataFrame({
-            'open_time': pd.to_datetime(df[open_time_col], format='mixed'),
-            'close_time': pd.to_datetime(df[close_time_col], format='mixed'),
+            'open_time': pd.to_datetime(df[open_time_col], format='mixed', dayfirst=True),
+            'close_time': pd.to_datetime(df[close_time_col], format='mixed', dayfirst=True),
             'symbol': df[symbol_col].apply(self.clean_symbol),
             'type': df[type_col].str.lower(),
             'lots': df[lots_col].apply(self._parse_number),

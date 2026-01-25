@@ -5,17 +5,22 @@ Calculator{% endblock %} {% block content %}
     <i class="bi bi-arrow-left me-1"></i>Upload Another File
   </a>
   <div class="dropdown">
-    <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <button
+      class="btn btn-primary dropdown-toggle"
+      type="button"
+      data-bs-toggle="dropdown"
+      aria-expanded="false"
+    >
       <i class="bi bi-download me-1"></i>Export Report
     </button>
     <ul class="dropdown-menu dropdown-menu-end">
       <li>
-        <a class="dropdown-item" href="{{ url_for('download', result_id=result_id) }}">
+        <a class="dropdown-item" href="#" id="exportCsvBtn">
           <i class="bi bi-filetype-csv me-2"></i>Download CSV
         </a>
       </li>
       <li>
-        <a class="dropdown-item" href="{{ url_for('export_html', result_id=result_id) }}">
+        <a class="dropdown-item" href="#" id="exportHtmlBtn">
           <i class="bi bi-filetype-html me-2"></i>Download HTML
         </a>
       </li>
@@ -51,6 +56,110 @@ Calculator{% endblock %} {% block content %}
     {% endif %} {% if data.auto_detected %}
     <small class="text-muted ms-2">(auto-detected)</small>
     {% endif %}
+  </div>
+</div>
+
+<!-- Date Range Filter -->
+<div class="card mb-4 filter-card">
+  <div
+    class="card-header d-flex justify-content-between align-items-center"
+    data-bs-toggle="collapse"
+    data-bs-target="#filterCollapse"
+    style="cursor: pointer"
+  >
+    <h5 class="mb-0">
+      <i class="bi bi-funnel me-2"></i>Filter by Date Range
+      <i class="bi bi-chevron-down ms-2 collapse-icon"></i>
+    </h5>
+    <span
+      class="badge bg-secondary filter-status-badge"
+      id="filterBadge"
+      style="display: none"
+      >Filtered</span
+    >
+  </div>
+  <div class="collapse show" id="filterCollapse">
+    <div class="card-body">
+      <div class="row align-items-end">
+        <!-- Quick Presets -->
+        <div class="col-lg-6 mb-3 mb-lg-0">
+          <label class="form-label text-muted small">Quick Presets</label>
+          <div class="btn-group flex-wrap" role="group" id="presetButtons">
+            <button
+              type="button"
+              class="btn btn-outline-primary preset-btn"
+              data-preset="7"
+            >
+              Last 7 Days
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-primary preset-btn"
+              data-preset="30"
+            >
+              Last 30 Days
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-primary preset-btn"
+              data-preset="month"
+            >
+              This Month
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary preset-btn active"
+              data-preset="all"
+            >
+              All Data
+            </button>
+          </div>
+        </div>
+        <!-- Custom Range -->
+        <div class="col-lg-6">
+          <label class="form-label text-muted small">Custom Range</label>
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <input
+              type="date"
+              class="form-control form-control-sm"
+              id="filterStartDate"
+              style="max-width: 150px"
+            />
+            <span class="text-muted">to</span>
+            <input
+              type="date"
+              class="form-control form-control-sm"
+              id="filterEndDate"
+              style="max-width: 150px"
+            />
+            <button
+              type="button"
+              class="btn btn-sm btn-primary"
+              id="applyCustomFilter"
+            >
+              <i class="bi bi-check-lg"></i> Apply
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              id="resetFilter"
+              title="Reset to all data"
+            >
+              <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Filter Status -->
+      <div
+        class="alert alert-info mt-3 mb-0 py-2 filter-status"
+        id="filterStatus"
+        style="display: none"
+      >
+        <i class="bi bi-info-circle me-2"></i>
+        <span id="filterStatusText"></span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -308,359 +417,1125 @@ Calculator{% endblock %} {% block content %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
-  // Count-up animation function
-  function animateCountUp(element, target, decimals, duration = 2000) {
-    const start = 0;
-    const startTime = performance.now();
-
-    function formatNumber(num, dec) {
-      return num.toLocaleString('en-US', {
-        minimumFractionDigits: dec,
-        maximumFractionDigits: dec
-      });
-    }
-
-    function update(currentTime) {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Easing function for smooth animation
-      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-      const current = start + (target - start) * easeOutQuart;
-
-      element.textContent = formatNumber(current, decimals);
-
-      if (progress < 1) {
-        requestAnimationFrame(update);
-      }
-    }
-
-    requestAnimationFrame(update);
-  }
-
-  // Initialize count-up animations
-  document.querySelectorAll('.count-up').forEach(el => {
-    const target = parseFloat(el.dataset.target);
-    const decimals = parseInt(el.dataset.decimals) || 0;
-    // Delay to sync with fade-in animation
-    setTimeout(() => {
-      animateCountUp(el, target, decimals, 1500);
-    }, 300);
-  });
-
-  // Render pie chart with staggered segment animation
-  const pieChartData = {{ data.pie_chart_json|safe }};
-  const values = pieChartData.data[0].values;
-  const labels = pieChartData.data[0].labels;
-  const numSegments = values.length;
-
-  // Disable legend click to prevent hiding segments
-  pieChartData.layout.legend = {
-    ...pieChartData.layout.legend,
-    itemclick: false,
-    itemdoubleclick: false
-  };
-
-  // Config - hide toolbar for cleaner look
-  const config = {
-    responsive: true,
-    displayModeBar: false
-  };
-
-  // Start with all segments pulled out and semi-transparent
-  const initialPull = new Array(numSegments).fill(0.15);
-
-  const chartData = [{
-    type: 'pie',
-    labels: labels,
-    values: values,
-    hole: 0.3,
-    textposition: 'inside',
-    textinfo: 'percent+label',
-    rotation: 90,
-    direction: 'clockwise',
-    pull: initialPull,
-    opacity: 0,
-    hoverinfo: 'none',
-    marker: {
-      line: {
-        color: '#ffffff',
-        width: 0.5
-      }
-    }
-  }];
-
-  // Create chart then animate segments popping in
-  const pieChartEl = document.getElementById('pieChart');
-  let animationComplete = false;
-
-  Plotly.newPlot('pieChart', chartData, pieChartData.layout, config).then(() => {
-    // Delay to sync with card fade-in
-    setTimeout(() => {
-      const duration = 1500;
+    // Count-up animation function
+    function animateCountUp(element, target, decimals, duration = 2000) {
+      const start = 0;
       const startTime = performance.now();
 
-      function animateSegments(currentTime) {
+      function formatNumber(num, dec) {
+        return num.toLocaleString('en-US', {
+          minimumFractionDigits: dec,
+          maximumFractionDigits: dec
+        });
+      }
+
+      function update(currentTime) {
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
 
-        // Easing - easeOutBack for bounce effect
-        const eased = 1 + 2.7 * Math.pow(progress - 1, 3) + 1.7 * Math.pow(progress - 1, 2);
+        // Easing function for smooth animation
+        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+        const current = start + (target - start) * easeOutQuart;
 
-        // Calculate pull values - segments pop in with staggered timing
-        const pullValues = initialPull.map((_, i) => {
-          // Each segment starts animation slightly later
-          const segmentDelay = i * 0.08;
-          const segmentProgress = Math.max(0, Math.min(1, (progress - segmentDelay) / (1 - segmentDelay)));
-          const segmentEased = 1 + 2.7 * Math.pow(segmentProgress - 1, 3) + 1.7 * Math.pow(segmentProgress - 1, 2);
-          return 0.15 * (1 - segmentEased);
-        });
-
-        Plotly.react('pieChart', [{
-          ...chartData[0],
-          opacity: Math.min(eased, 1),
-          pull: pullValues
-        }], pieChartData.layout, config);
+        element.textContent = formatNumber(current, decimals);
 
         if (progress < 1) {
-          requestAnimationFrame(animateSegments);
-        } else {
-          animationComplete = true;
+          requestAnimationFrame(update);
         }
       }
 
-      requestAnimationFrame(animateSegments);
-    }, 600);
+      requestAnimationFrame(update);
+    }
 
-    // Add hover effect - segment pops out with color-matched glow when hovered
-    let unhoverTimeout = null;
-    let currentHoveredIndex = -1;
-
-    pieChartEl.on('plotly_hover', function(data) {
-
-      // Clear any pending unhover
-      if (unhoverTimeout) {
-        clearTimeout(unhoverTimeout);
-        unhoverTimeout = null;
-      }
-
-      const pointIndex = data.points[0].pointNumber;
-
-      // Skip if already hovering this segment
-      if (currentHoveredIndex === pointIndex) return;
-      currentHoveredIndex = pointIndex;
-
-      const pullValues = new Array(numSegments).fill(0);
-      pullValues[pointIndex] = 0.08; // Pull out hovered segment
-
-      // Get the actual color of the hovered segment from the SVG
-      const slices = pieChartEl.querySelectorAll('.slice path');
-      slices.forEach((path, i) => {
-        if (i === pointIndex) {
-          // Get the fill color of this segment
-          const fillColor = path.style.fill || window.getComputedStyle(path).fill;
-          // Apply color-matched glow
-          path.style.filter = `drop-shadow(0 0 16px ${fillColor})`;
-        } else {
-          path.style.filter = '';
-        }
-      });
-
-      Plotly.react('pieChart', [{
-        ...chartData[0],
-        opacity: 1,
-        pull: pullValues
-      }], pieChartData.layout, config);
+    // Initialize count-up animations
+    document.querySelectorAll('.count-up').forEach(el => {
+      const target = parseFloat(el.dataset.target);
+      const decimals = parseInt(el.dataset.decimals) || 0;
+      // Delay to sync with fade-in animation
+      setTimeout(() => {
+        animateCountUp(el, target, decimals, 1500);
+      }, 300);
     });
 
-    // Reset on unhover with debounce to prevent jittering
-    pieChartEl.on('plotly_unhover', function() {
+    // Render pie chart with staggered segment animation
+    const pieChartData = {{ data.pie_chart_json|safe }};
+    const values = pieChartData.data[0].values;
+    const labels = pieChartData.data[0].labels;
+    const numSegments = values.length;
 
-      // Debounce the unhover to prevent jittering when cursor is in the gap
-      unhoverTimeout = setTimeout(() => {
-        currentHoveredIndex = -1;
+    // Disable legend click to prevent hiding segments
+    pieChartData.layout.legend = {
+      ...pieChartData.layout.legend,
+      itemclick: false,
+      itemdoubleclick: false
+    };
 
-        // Remove glow effect
-        pieChartEl.querySelectorAll('.slice path').forEach(path => {
-          path.style.filter = '';
+    // Config - hide toolbar for cleaner look
+    const config = {
+      responsive: true,
+      displayModeBar: false
+    };
+
+    // Start with all segments pulled out and semi-transparent
+    const initialPull = new Array(numSegments).fill(0.08);
+
+    const chartData = [{
+      type: 'pie',
+      labels: labels,
+      values: values,
+      hole: 0.3,
+      textposition: 'inside',
+      textinfo: 'percent+label',
+      rotation: 90,
+      direction: 'clockwise',
+      pull: initialPull,
+      opacity: 0,
+      hoverinfo: 'none',
+      marker: {
+        line: {
+          color: '#ffffff',
+          width: 0.5
+        }
+      }
+    }];
+
+    // Create chart then animate segments popping in
+    const pieChartEl = document.getElementById('pieChart');
+    let animationComplete = false;
+
+    Plotly.newPlot('pieChart', chartData, pieChartData.layout, config).then(() => {
+      // Delay to sync with card fade-in
+      setTimeout(() => {
+        const duration = 1500;
+        const startTime = performance.now();
+
+        function animateSegments(currentTime) {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+
+          // Easing - easeOutBack for bounce effect
+          const eased = 1 + 2.7 * Math.pow(progress - 1, 3) + 1.7 * Math.pow(progress - 1, 2);
+
+          // Calculate pull values - segments pop in with staggered timing
+          const pullValues = initialPull.map((_, i) => {
+            // Each segment starts animation slightly later
+            const segmentDelay = i * 0.06;
+            const segmentProgress = Math.max(0, Math.min(1, (progress - segmentDelay) / (1 - segmentDelay)));
+            const segmentEased = 1 + 2.7 * Math.pow(segmentProgress - 1, 3) + 1.7 * Math.pow(segmentProgress - 1, 2);
+            return 0.15 * (1 - segmentEased);
+          });
+
+          Plotly.react('pieChart', [{
+            ...chartData[0],
+            opacity: Math.min(eased, 1),
+            pull: pullValues
+          }], pieChartData.layout, config);
+
+          if (progress < 1) {
+            requestAnimationFrame(animateSegments);
+          } else {
+            animationComplete = true;
+          }
+        }
+
+        requestAnimationFrame(animateSegments);
+      }, 600);
+
+      // Add hover effect - segment pops out with color-matched glow when hovered
+      let unhoverTimeout = null;
+      let currentHoveredIndex = -1;
+
+      pieChartEl.on('plotly_hover', function(data) {
+
+        // Clear any pending unhover
+        if (unhoverTimeout) {
+          clearTimeout(unhoverTimeout);
+          unhoverTimeout = null;
+        }
+
+        const pointIndex = data.points[0].pointNumber;
+
+        // Skip if already hovering this segment
+        if (currentHoveredIndex === pointIndex) return;
+        currentHoveredIndex = pointIndex;
+
+        const pullValues = new Array(numSegments).fill(0);
+        pullValues[pointIndex] = 0.08; // Pull out hovered segment
+
+        // Get the actual color of the hovered segment from the SVG
+        const slices = pieChartEl.querySelectorAll('.slice path');
+        slices.forEach((path, i) => {
+          if (i === pointIndex) {
+            // Get the fill color of this segment
+            const fillColor = path.style.fill || window.getComputedStyle(path).fill;
+            // Apply color-matched glow
+            path.style.filter = `drop-shadow(0 0 16px ${fillColor})`;
+          } else {
+            path.style.filter = '';
+          }
         });
 
         Plotly.react('pieChart', [{
           ...chartData[0],
           opacity: 1,
-          pull: new Array(numSegments).fill(0)
+          pull: pullValues
         }], pieChartData.layout, config);
-      }, 150);
+      });
+
+      // Reset on unhover with debounce to prevent jittering
+      pieChartEl.on('plotly_unhover', function() {
+
+        // Debounce the unhover to prevent jittering when cursor is in the gap
+        unhoverTimeout = setTimeout(() => {
+          currentHoveredIndex = -1;
+
+          // Remove glow effect
+          pieChartEl.querySelectorAll('.slice path').forEach(path => {
+            path.style.filter = '';
+          });
+
+          Plotly.react('pieChart', [{
+            ...chartData[0],
+            opacity: 1,
+            pull: new Array(numSegments).fill(0)
+          }], pieChartData.layout, config);
+        }, 150);
+      });
     });
-  });
 
-  // Match card heights dynamically - pie chart is the reference
-  function matchCardHeights() {
-    const pieCard = document.getElementById('pieChartCard');
-    const summaryCard = document.getElementById('summaryCard');
-    const summaryTableContainer = document.getElementById('summaryTableContainer');
+    // Match card heights dynamically - pie chart is the reference
+    function matchCardHeights() {
+      const pieCard = document.getElementById('pieChartCard');
+      const summaryCard = document.getElementById('summaryCard');
+      const summaryTableContainer = document.getElementById('summaryTableContainer');
 
-    // Reset to get natural sizes
-    pieCard.style.height = 'auto';
-    summaryCard.style.height = 'auto';
-    summaryTableContainer.style.maxHeight = 'none';
+      // Reset to get natural sizes
+      pieCard.style.height = 'auto';
+      summaryCard.style.height = 'auto';
+      summaryTableContainer.style.maxHeight = 'none';
 
-    // Pie chart card is the reference height
-    const pieHeight = pieCard.offsetHeight;
+      // Pie chart card is the reference height
+      const pieHeight = pieCard.offsetHeight;
 
-    // Set summary card to match pie chart height
-    summaryCard.style.height = pieHeight + 'px';
+      // Set summary card to match pie chart height
+      summaryCard.style.height = pieHeight + 'px';
 
-    // Calculate available height for table (card height minus header and padding)
-    const summaryHeader = summaryCard.querySelector('.card-header');
-    const summaryBody = summaryCard.querySelector('.card-body');
-    const headerHeight = summaryHeader.offsetHeight;
-    const bodyPadding = 32; // card-body padding (1rem top + 1rem bottom)
-    const tableMaxHeight = pieHeight - headerHeight - bodyPadding;
+      // Calculate available height for table (card height minus header and padding)
+      const summaryHeader = summaryCard.querySelector('.card-header');
+      const summaryBody = summaryCard.querySelector('.card-body');
+      const headerHeight = summaryHeader.offsetHeight;
+      const bodyPadding = 32; // card-body padding (1rem top + 1rem bottom)
+      const tableMaxHeight = pieHeight - headerHeight - bodyPadding;
 
-    summaryTableContainer.style.maxHeight = tableMaxHeight + 'px';
-    summaryTableContainer.style.overflowY = 'auto';
-  }
+      summaryTableContainer.style.maxHeight = tableMaxHeight + 'px';
+      summaryTableContainer.style.overflowY = 'auto';
+    }
 
-  // Run shortly after chart renders (just need initial layout, not full animation)
-  setTimeout(matchCardHeights, 100);
+    // Run shortly after chart renders (just need initial layout, not full animation)
+    setTimeout(matchCardHeights, 100);
 
-  // Also match on window resize
-  window.addEventListener('resize', matchCardHeights);
+    // Also match on window resize
+    window.addEventListener('resize', matchCardHeights);
 
-  // PDF Export functionality - fully client-side
-  document.getElementById('exportPdfBtn').addEventListener('click', async function(e) {
-    e.preventDefault();
+    // ============================================
+    // Data Initialization (for filtering and exports)
+    // ============================================
 
-    const btn = this;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating PDF...';
-    btn.classList.add('disabled');
+    // Store original data for reset capability
+    const originalTrades = {{ data.trades|tojson|safe }};
+    const originalSummary = {{ data.summary|tojson|safe }};
+    const originalTotals = {
+      totalNotional: {{ data.total_notional }},
+      totalTrades: {{ data.total_trades }},
+      totalLots: {{ data.total_lots }}
+    };
+    const originalFxSummary = {{ data.fx_summary|tojson|safe }};
 
-    try {
-      // Use Plotly's built-in toImage to capture chart as PNG
-      const pieChartEl = document.getElementById('pieChart');
-      const chartImg = await Plotly.toImage(pieChartEl, { format: 'png', width: 500, height: 400, scale: 2 });
+    // Current filtered state
+    let currentFilteredTrades = [...originalTrades];
+    window.currentFilteredData = currentFilteredTrades; // For exports
 
-      // Build PDF content
-      const pdfContent = document.createElement('div');
-      pdfContent.innerHTML = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; padding: 20px; color: #212529;">
-          <div style="border-bottom: 2px solid #0d6efd; padding-bottom: 15px; margin-bottom: 20px;">
-            <h1 style="color: #0d6efd; font-size: 1.75rem; margin: 0;">Notional Volume Report</h1>
-            <div style="color: #6c757d; font-size: 0.9rem; margin-top: 5px;">
-              <strong>File:</strong> {{ data.filename }} |
-              <strong>Platform:</strong> {{ data.platform_name }}{% if data.auto_detected %} (auto-detected){% endif %} |
-              <strong>Period:</strong> {{ data.period_start }} to {{ data.period_end }}
+    // Parse date from close_time string
+    function parseTradeDate(closeTime) {
+      // Handle various date formats
+      if (typeof closeTime === 'string') {
+        // Try ISO format first
+        let date = new Date(closeTime.replace(' ', 'T'));
+        if (!isNaN(date.getTime())) return date;
+
+        // Try parsing as-is
+        date = new Date(closeTime);
+        if (!isNaN(date.getTime())) return date;
+      }
+      // Handle epoch milliseconds
+      if (typeof closeTime === 'number') {
+        return new Date(closeTime);
+      }
+      return new Date(closeTime);
+    }
+
+    // Recalculate summary from filtered trades
+    function recalculateSummary(filteredTrades) {
+      const totalNotional = filteredTrades.reduce((sum, t) => sum + t.notional_usd, 0);
+      const totalTrades = filteredTrades.length;
+      const totalLots = filteredTrades.reduce((sum, t) => sum + t.lots, 0);
+
+      // Group by symbol
+      const symbolGroups = {};
+      filteredTrades.forEach(trade => {
+        if (!symbolGroups[trade.symbol]) {
+          symbolGroups[trade.symbol] = { total_lots: 0, notional_usd: 0 };
+        }
+        symbolGroups[trade.symbol].total_lots += trade.lots;
+        symbolGroups[trade.symbol].notional_usd += trade.notional_usd;
+      });
+
+      // Convert to array and calculate percentages
+      const summary = Object.entries(symbolGroups).map(([symbol, data]) => ({
+        symbol,
+        total_lots: data.total_lots,
+        notional_usd: data.notional_usd,
+        percentage: totalNotional > 0 ? (data.notional_usd / totalNotional * 100) : 0
+      }));
+
+      // Sort by notional descending
+      summary.sort((a, b) => b.notional_usd - a.notional_usd);
+
+      // Calculate FX source summary
+      const fxSummary = { direct: 0, api: 0, api_cached: 0, fallback: 0 };
+      filteredTrades.forEach(trade => {
+        if (fxSummary.hasOwnProperty(trade.fx_source)) {
+          fxSummary[trade.fx_source]++;
+        }
+      });
+
+      return {
+        totalNotional,
+        totalTrades,
+        totalLots,
+        summary,
+        fxSummary
+      };
+    }
+
+    // Format number with commas
+    function formatNumber(num, decimals = 2) {
+      return num.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      });
+    }
+
+    // Format datetime as "07 Jan 2026 18:48"
+    function formatDateTime(closeTime) {
+      const date = parseTradeDate(closeTime);
+      if (isNaN(date.getTime())) return closeTime;
+
+      const day = String(date.getDate()).padStart(2, '0');
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const month = months[date.getMonth()];
+      const year = date.getFullYear();
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+
+      return `${day} ${month} ${year} ${hours}:${minutes}`;
+    }
+
+    // ============================================
+    // Export Functions - Use Filtered Data
+    // ============================================
+
+    // Get current export data (filtered or original)
+    function getExportData() {
+      const trades = window.currentFilteredData || originalTrades;
+      const results = recalculateSummary(trades);
+
+      // Determine date range for filtered data
+      let periodStart, periodEnd, filterRangeStart, filterRangeEnd;
+      if (trades.length > 0) {
+        const dates = trades.map(t => parseTradeDate(t.close_time)).filter(d => !isNaN(d.getTime()));
+        dates.sort((a, b) => a - b);
+        periodStart = formatDateShort(dates[0]);
+        periodEnd = formatDateShort(dates[dates.length - 1]);
+        filterRangeStart = formatDateLong(dates[0]);
+        filterRangeEnd = formatDateLong(dates[dates.length - 1]);
+      } else {
+        periodStart = '{{ data.period_start }}';
+        periodEnd = '{{ data.period_end }}';
+        filterRangeStart = periodStart;
+        filterRangeEnd = periodEnd;
+      }
+
+      return {
+        trades,
+        summary: results.summary,
+        fxSummary: results.fxSummary,
+        totalNotional: results.totalNotional,
+        totalTrades: results.totalTrades,
+        totalLots: results.totalLots,
+        periodStart,
+        periodEnd,
+        filterRangeStart,
+        filterRangeEnd,
+        filename: '{{ data.filename }}',
+        platformName: '{{ data.platform_name }}',
+        isFiltered: trades.length !== originalTrades.length
+      };
+    }
+
+    // Format date as DD-MM-YYYY
+    function formatDateShort(date) {
+      if (!date || isNaN(date.getTime())) return '';
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    }
+
+    // Format date as DD MMM YYYY (e.g., 29 Dec 2025)
+    function formatDateLong(date) {
+      if (!date || isNaN(date.getTime())) return '';
+      const day = String(date.getDate()).padStart(2, '0');
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const month = months[date.getMonth()];
+      const year = date.getFullYear();
+      return `${day} ${month} ${year}`;
+    }
+
+    // CSV Export
+    document.getElementById('exportCsvBtn').addEventListener('click', function(e) {
+      e.preventDefault();
+      const data = getExportData();
+
+      // CSV header
+      const headers = ['Close Time', 'Symbol', 'Type', 'Lots', 'Open Price', 'Close Price', 'Contract Size', 'Base Currency', 'FX Rate', 'FX Source', 'Notional USD'];
+
+      // CSV rows
+      const rows = data.trades.map(trade => [
+        formatDateTime(trade.close_time),
+        trade.symbol,
+        trade.type,
+        trade.lots.toFixed(2),
+        trade.open_price.toFixed(2),
+        trade.close_price.toFixed(2),
+        trade.contract_size,
+        trade.base_currency,
+        trade.fx_rate.toFixed(4),
+        trade.fx_source,
+        trade.notional_usd.toFixed(2)
+      ]);
+
+      // Build CSV content
+      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+
+      // Download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      const suffix = data.isFiltered ? '_filtered' : '';
+      link.download = `notional_report${suffix}_${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    });
+
+    // HTML Export
+    document.getElementById('exportHtmlBtn').addEventListener('click', async function(e) {
+      e.preventDefault();
+
+      const btn = this;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+      btn.classList.add('disabled');
+
+      try {
+        const data = getExportData();
+
+        // Capture pie chart as image
+        const pieChartEl = document.getElementById('pieChart');
+        const chartImg = await Plotly.toImage(pieChartEl, { format: 'png', width: 500, height: 400, scale: 2 });
+
+        const htmlContent = generateHtmlReport(data, chartImg);
+
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        const suffix = data.isFiltered ? '_filtered' : '';
+        link.download = `notional_report${suffix}_${new Date().toISOString().slice(0,10)}.html`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      } catch (error) {
+        console.error('HTML export failed:', error);
+        alert('Failed to generate HTML: ' + error.message);
+      } finally {
+        btn.innerHTML = originalText;
+        btn.classList.remove('disabled');
+      }
+    });
+
+    // Generate HTML report content
+    function generateHtmlReport(data, chartImg) {
+      const summaryRows = data.summary.map(row => `
+        <tr>
+          <td><strong>${row.symbol}</strong></td>
+          <td class="text-end">${row.total_lots.toFixed(2)}</td>
+          <td class="text-end">$${formatNumber(row.notional_usd)}</td>
+          <td>
+            <div class="progress-container">
+              <div class="progress-bar"><div class="progress-fill" style="width: ${row.percentage}%;"></div></div>
+              <span>${row.percentage.toFixed(1)}%</span>
             </div>
+          </td>
+        </tr>
+      `).join('');
+
+      const tradeRows = data.trades.map(trade => `
+        <tr>
+          <td>${formatDateTime(trade.close_time)}</td>
+          <td><strong>${trade.symbol}</strong></td>
+          <td class="text-center">
+            <span class="badge badge-${trade.type === 'buy' ? 'success' : 'danger'}">${trade.type}</span>
+          </td>
+          <td class="text-end">${trade.lots.toFixed(2)}</td>
+          <td class="text-end">${formatNumber(trade.close_price)}</td>
+          <td class="text-end">${trade.fx_rate.toFixed(4)}</td>
+          <td class="text-center">
+            <span class="badge badge-${trade.fx_source === 'direct' ? 'secondary' : trade.fx_source === 'api' ? 'success' : trade.fx_source === 'api_cached' ? 'info' : 'warning'}">${trade.fx_source}</span>
+          </td>
+          <td class="text-end"><strong>$${formatNumber(trade.notional_usd)}</strong></td>
+        </tr>
+      `).join('');
+
+      const fxItems = [];
+      if (data.fxSummary.direct > 0) fxItems.push(`<div class="fx-item"><span class="badge badge-secondary">${data.fxSummary.direct}</span><span>Direct USD quote</span></div>`);
+      if (data.fxSummary.api > 0) fxItems.push(`<div class="fx-item"><span class="badge badge-success">${data.fxSummary.api}</span><span>Historical API</span></div>`);
+      if (data.fxSummary.api_cached > 0) fxItems.push(`<div class="fx-item"><span class="badge badge-info">${data.fxSummary.api_cached}</span><span>Cached API</span></div>`);
+      if (data.fxSummary.fallback > 0) fxItems.push(`<div class="fx-item"><span class="badge badge-warning">${data.fxSummary.fallback}</span><span>Fallback rates</span></div>`);
+
+      return `<!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Notional Volume Report - ${data.filename}</title>
+      <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #212529; line-height: 1.5; padding: 20px; max-width: 1200px; margin: 0 auto; }
+          h1, h2, h3 { margin-bottom: 0.5rem; }
+          .header { border-bottom: 2px solid #0d6efd; padding-bottom: 15px; margin-bottom: 20px; }
+          .header h1 { color: #0d6efd; font-size: 1.75rem; }
+          .header .meta { color: #6c757d; font-size: 0.9rem; }
+          .summary-cards { display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap; }
+          .summary-card { flex: 1; min-width: 200px; padding: 20px; border-radius: 8px; color: white; }
+          .summary-card.primary { background: #0d6efd; }
+          .summary-card.success { background: #198754; }
+          .summary-card.info { background: #0dcaf0; color: white; }
+          .summary-card h3 { font-size: 0.85rem; opacity: 0.85; margin-bottom: 5px; font-weight: normal; }
+          .summary-card .value { font-size: 1.5rem; font-weight: bold; }
+          .section { margin-bottom: 25px; }
+          .section-title { font-size: 1.1rem; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 8px; margin-bottom: 15px; }
+          table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+          th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
+          th { background: #212529; color: white; font-weight: 600; }
+          tr:hover { background: #f8f9fa; }
+          .text-end { text-align: right; }
+          .text-center { text-align: center; }
+          .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
+          .badge-success { background: #198754; color: white; }
+          .badge-danger { background: #dc3545; color: white; }
+          .badge-secondary { background: #6c757d; color: white; }
+          .badge-info { background: #0dcaf0; color: #000; }
+          .badge-warning { background: #ffc107; color: #000; }
+          .progress-container { display: flex; align-items: center; gap: 8px; }
+          .progress-bar { height: 8px; background: #e9ecef; border-radius: 4px; flex-grow: 1; overflow: hidden; }
+          .progress-fill { height: 100%; background: #0d6efd; border-radius: 4px; }
+          .fx-summary { display: flex; gap: 20px; flex-wrap: wrap; }
+          .fx-item { display: flex; align-items: center; gap: 8px; }
+          .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: 0.8rem; text-align: center; }
+          .filter-notice { background: #e7f3ff; border: 1px solid #b6d4fe; border-radius: 4px; padding: 8px 12px; margin-bottom: 15px; font-size: 0.85rem; color: #084298; }
+          .two-column { display: flex; gap: 20px; margin-bottom: 25px; }
+          .two-column > div { flex: 1; }
+          .chart-container { text-align: center; }
+          .chart-container img { max-width: 100%; height: auto; }
+          @media (max-width: 768px) { .two-column { flex-direction: column; } }
+      </style>
+  </head>
+  <body>
+      <div class="header">
+          <h1>Notional Volume Report</h1>
+          <div class="meta">
+              <strong>File:</strong> ${data.filename} |
+              <strong>Platform:</strong> ${data.platformName} |
+              <strong>Period:</strong> ${data.periodStart} to ${data.periodEnd}
           </div>
+      </div>
 
-          <div style="display: flex; gap: 15px; margin-bottom: 25px;">
-            <div style="flex: 1; padding: 20px; border-radius: 8px; background: #0d6efd; color: white;">
-              <div style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 5px;">Total Notional Volume</div>
-              <div style="font-size: 1.5rem; font-weight: bold;">$${Number({{ data.total_notional }}).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-            </div>
-            <div style="flex: 1; padding: 20px; border-radius: 8px; background: #198754; color: white;">
-              <div style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 5px;">Total Trades</div>
-              <div style="font-size: 1.5rem; font-weight: bold;">{{ data.total_trades }}</div>
-            </div>
-            <div style="flex: 1; padding: 20px; border-radius: 8px; background: #0dcaf0; color: white;">
-              <div style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 5px;">Total Lots</div>
-              <div style="font-size: 1.5rem; font-weight: bold;">${Number({{ data.total_lots }}).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-            </div>
+      ${data.isFiltered ? `<div class="filter-notice">This report contains filtered data for the selected date range: <strong>${data.filterRangeStart}</strong> to <strong>${data.filterRangeEnd}</strong></div>` : ''}
+
+      <div class="summary-cards">
+          <div class="summary-card primary">
+              <h3>Total Notional Volume</h3>
+              <div class="value">$${formatNumber(data.totalNotional)}</div>
           </div>
+          <div class="summary-card success">
+              <h3>Total Trades</h3>
+              <div class="value">${data.totalTrades}</div>
+          </div>
+          <div class="summary-card info">
+              <h3>Total Lots</h3>
+              <div class="value">${formatNumber(data.totalLots)}</div>
+          </div>
+      </div>
 
-          <div style="display: flex; gap: 20px; margin-bottom: 25px;">
-            <div style="flex: 1;">
-              <h2 style="font-size: 1.1rem; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 8px; margin-bottom: 15px;">Distribution by Symbol</h2>
-              <div style="text-align: center;">
-                <img src="${chartImg}" style="max-width: 100%; max-height: 350px;">
+      <div class="two-column">
+          <div class="section">
+              <h2 class="section-title">Distribution by Symbol</h2>
+              <div class="chart-container">
+                  <img src="${chartImg}" alt="Distribution by Symbol">
+              </div>
+          </div>
+          <div class="section">
+              <h2 class="section-title">Summary by Symbol</h2>
+              <table>
+                  <thead>
+                      <tr>
+                          <th>Symbol</th>
+                          <th class="text-end">Total Lots</th>
+                          <th class="text-end">Notional (USD)</th>
+                          <th>Distribution</th>
+                      </tr>
+                  </thead>
+                  <tbody>${summaryRows}</tbody>
+              </table>
+          </div>
+      </div>
+
+      <div class="section">
+          <h2 class="section-title">Trade Details</h2>
+          <table>
+              <thead>
+                  <tr>
+                      <th>Close Time</th>
+                      <th>Symbol</th>
+                      <th class="text-center">Type</th>
+                      <th class="text-end">Lots</th>
+                      <th class="text-end">Close Price</th>
+                      <th class="text-end">FX Rate</th>
+                      <th class="text-center">FX Source</th>
+                      <th class="text-end">Notional (USD)</th>
+                  </tr>
+              </thead>
+              <tbody>${tradeRows}</tbody>
+          </table>
+      </div>
+
+      <div class="section">
+          <h2 class="section-title">FX Rate Sources</h2>
+          <div class="fx-summary">${fxItems.join('')}</div>
+      </div>
+
+      <div class="footer">
+          Generated by Trading Notional Volume Calculator | ${new Date().toLocaleString()}
+      </div>
+  </body>
+  </html>`;
+    }
+
+    // PDF Export functionality - fully client-side using filtered data
+    document.getElementById('exportPdfBtn').addEventListener('click', async function(e) {
+      e.preventDefault();
+
+      const btn = this;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating PDF...';
+      btn.classList.add('disabled');
+
+      try {
+        const data = getExportData();
+
+        // Use Plotly's built-in toImage to capture chart as PNG
+        const pieChartEl = document.getElementById('pieChart');
+        const chartImg = await Plotly.toImage(pieChartEl, { format: 'png', width: 500, height: 400, scale: 2 });
+
+        // Build summary rows
+        const summaryRows = data.summary.map(row => `
+          <tr style="border-bottom: 1px solid #dee2e6;">
+            <td style="padding: 8px;"><strong>${row.symbol}</strong></td>
+            <td style="padding: 8px; text-align: right;">${row.total_lots.toFixed(2)}</td>
+            <td style="padding: 8px; text-align: right;">$${formatNumber(row.notional_usd)}</td>
+            <td style="padding: 8px; text-align: right;">${row.percentage.toFixed(1)}%</td>
+          </tr>
+        `).join('');
+
+        // Build trade rows
+        const tradeRows = data.trades.map(trade => `
+          <tr style="border-bottom: 1px solid #dee2e6;">
+            <td style="padding: 6px;">${formatDateTime(trade.close_time)}</td>
+            <td style="padding: 6px;"><strong>${trade.symbol}</strong></td>
+            <td style="padding: 6px; text-align: center;">
+              <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; background: ${trade.type === 'buy' ? '#198754' : '#dc3545'}; color: white;">${trade.type}</span>
+            </td>
+            <td style="padding: 6px; text-align: right;">${trade.lots.toFixed(2)}</td>
+            <td style="padding: 6px; text-align: right;">${formatNumber(trade.close_price)}</td>
+            <td style="padding: 6px; text-align: right;">${trade.fx_rate.toFixed(4)}</td>
+            <td style="padding: 6px; text-align: center;">
+              <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; background: ${trade.fx_source === 'direct' ? '#6c757d' : trade.fx_source === 'api' ? '#198754' : trade.fx_source === 'api_cached' ? '#0dcaf0' : '#ffc107'}; color: ${['api_cached', 'fallback'].includes(trade.fx_source) ? '#000' : 'white'};">${trade.fx_source}</span>
+            </td>
+            <td style="padding: 6px; text-align: right;"><strong>$${formatNumber(trade.notional_usd)}</strong></td>
+          </tr>
+        `).join('');
+
+        // Build PDF content
+        const pdfContent = document.createElement('div');
+        pdfContent.innerHTML = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; padding: 20px; color: #212529;">
+            <div style="border-bottom: 2px solid #0d6efd; padding-bottom: 15px; margin-bottom: 20px;">
+              <h1 style="color: #0d6efd; font-size: 1.75rem; margin: 0;">Notional Volume Report</h1>
+              <div style="color: #6c757d; font-size: 0.9rem; margin-top: 5px;">
+                <strong>File:</strong> ${data.filename} |
+                <strong>Platform:</strong> ${data.platformName} |
+                <strong>Period:</strong> ${data.periodStart} to ${data.periodEnd}
               </div>
             </div>
-            <div style="flex: 1;">
-              <h2 style="font-size: 1.1rem; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 8px; margin-bottom: 15px;">Summary by Symbol</h2>
-              <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-                <thead>
-                  <tr style="background: #212529; color: white;">
-                    <th style="padding: 8px; text-align: left;">Symbol</th>
-                    <th style="padding: 8px; text-align: right;">Total Lots</th>
-                    <th style="padding: 8px; text-align: right;">Notional (USD)</th>
-                    <th style="padding: 8px; text-align: right;">%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for row in data.summary %}
-                  <tr style="border-bottom: 1px solid #dee2e6;">
-                    <td style="padding: 8px;"><strong>{{ row.symbol }}</strong></td>
-                    <td style="padding: 8px; text-align: right;">{{ "{:.2f}".format(row.total_lots) }}</td>
-                    <td style="padding: 8px; text-align: right;">${{ "{:,.2f}".format(row.notional_usd) }}</td>
-                    <td style="padding: 8px; text-align: right;">{{ "{:.1f}".format(row.percentage) }}%</td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+
+            ${data.isFiltered ? `<div style="background: #e7f3ff; border: 1px solid #b6d4fe; border-radius: 4px; padding: 8px 12px; margin-bottom: 15px; font-size: 0.85rem; color: #084298;">This report contains filtered data for the selected date range: <strong>${data.filterRangeStart}</strong> to <strong>${data.filterRangeEnd}</strong></div>` : ''}
+
+            <div style="display: flex; gap: 15px; margin-bottom: 25px;">
+              <div style="flex: 1; padding: 20px; border-radius: 8px; background: #0d6efd; color: white;">
+                <div style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 5px;">Total Notional Volume</div>
+                <div style="font-size: 1.5rem; font-weight: bold;">$${formatNumber(data.totalNotional)}</div>
+              </div>
+              <div style="flex: 1; padding: 20px; border-radius: 8px; background: #198754; color: white;">
+                <div style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 5px;">Total Trades</div>
+                <div style="font-size: 1.5rem; font-weight: bold;">${data.totalTrades}</div>
+              </div>
+              <div style="flex: 1; padding: 20px; border-radius: 8px; background: #0dcaf0; color: white;">
+                <div style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 5px;">Total Lots</div>
+                <div style="font-size: 1.5rem; font-weight: bold;">${formatNumber(data.totalLots)}</div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 20px; margin-bottom: 25px;">
+              <div style="flex: 1;">
+                <h2 style="font-size: 1.1rem; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 8px; margin-bottom: 15px;">Distribution by Symbol</h2>
+                <div style="text-align: center;">
+                  <img src="${chartImg}" style="max-width: 100%; max-height: 350px;">
+                </div>
+              </div>
+              <div style="flex: 1;">
+                <h2 style="font-size: 1.1rem; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 8px; margin-bottom: 15px;">Summary by Symbol</h2>
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                  <thead>
+                    <tr style="background: #212529; color: white;">
+                      <th style="padding: 8px; text-align: left;">Symbol</th>
+                      <th style="padding: 8px; text-align: right;">Total Lots</th>
+                      <th style="padding: 8px; text-align: right;">Notional (USD)</th>
+                      <th style="padding: 8px; text-align: right;">%</th>
+                    </tr>
+                  </thead>
+                  <tbody>${summaryRows}</tbody>
+                </table>
+              </div>
+            </div>
+
+            <h2 style="font-size: 1.1rem; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 8px; margin-bottom: 15px;">Trade Details</h2>
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
+              <thead>
+                <tr style="background: #212529; color: white;">
+                  <th style="padding: 6px;">Close Time</th>
+                  <th style="padding: 6px;">Symbol</th>
+                  <th style="padding: 6px; text-align: center;">Type</th>
+                  <th style="padding: 6px; text-align: right;">Lots</th>
+                  <th style="padding: 6px; text-align: right;">Close Price</th>
+                  <th style="padding: 6px; text-align: right;">FX Rate</th>
+                  <th style="padding: 6px; text-align: center;">FX Source</th>
+                  <th style="padding: 6px; text-align: right;">Notional (USD)</th>
+                </tr>
+              </thead>
+              <tbody>${tradeRows}</tbody>
+            </table>
+
+            <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: 0.8rem; text-align: center;">
+              Generated by Trading Notional Volume Calculator | ${new Date().toLocaleString()}
             </div>
           </div>
+        `;
 
-          <h2 style="font-size: 1.1rem; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 8px; margin-bottom: 15px;">Trade Details</h2>
-          <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
-            <thead>
-              <tr style="background: #212529; color: white;">
-                <th style="padding: 6px;">Close Time</th>
-                <th style="padding: 6px;">Symbol</th>
-                <th style="padding: 6px; text-align: center;">Type</th>
-                <th style="padding: 6px; text-align: right;">Lots</th>
-                <th style="padding: 6px; text-align: right;">Close Price</th>
-                <th style="padding: 6px; text-align: right;">FX Rate</th>
-                <th style="padding: 6px; text-align: center;">FX Source</th>
-                <th style="padding: 6px; text-align: right;">Notional (USD)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for trade in data.trades %}
-              <tr style="border-bottom: 1px solid #dee2e6;">
-                <td style="padding: 6px;">{{ trade.close_time|datetime }}</td>
-                <td style="padding: 6px;"><strong>{{ trade.symbol }}</strong></td>
-                <td style="padding: 6px; text-align: center;">
-                  <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; background: {{ '#198754' if trade.type == 'buy' else '#dc3545' }}; color: white;">{{ trade.type }}</span>
-                </td>
-                <td style="padding: 6px; text-align: right;">{{ "%.2f"|format(trade.lots) }}</td>
-                <td style="padding: 6px; text-align: right;">{{ "{:,.2f}".format(trade.close_price) }}</td>
-                <td style="padding: 6px; text-align: right;">{{ "%.4f"|format(trade.fx_rate) }}</td>
-                <td style="padding: 6px; text-align: center;">
-                  <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; background: {{ '#6c757d' if trade.fx_source == 'direct' else '#198754' if trade.fx_source == 'api' else '#0dcaf0' if trade.fx_source == 'api_cached' else '#ffc107' }}; color: {{ '#000' if trade.fx_source in ['api_cached', 'fallback'] else 'white' }};">{{ trade.fx_source }}</span>
-                </td>
-                <td style="padding: 6px; text-align: right;"><strong>{{ trade.notional_usd|currency }}</strong></td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        // Configure PDF options
+        const suffix = data.isFiltered ? '_filtered' : '';
+        const opt = {
+          margin: 10,
+          filename: `notional_report${suffix}_${data.periodStart}_to_${data.periodEnd}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
 
-          <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: 0.8rem; text-align: center;">
-            Generated by Trading Notional Volume Calculator | ${new Date().toLocaleString()}
-          </div>
-        </div>
-      `;
+        // Generate PDF
+        await html2pdf().set(opt).from(pdfContent).save();
 
-      // Configure PDF options
-      const opt = {
-        margin: 10,
-        filename: 'notional_report_{{ data.period_start }}_to_{{ data.period_end }}.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
+      } catch (error) {
+        console.error('PDF export failed:', error);
+        alert('Failed to generate PDF: ' + error.message + '. Please try the HTML export instead.');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.classList.remove('disabled');
+      }
+    });
 
-      // Generate PDF
-      await html2pdf().set(opt).from(pdfContent).save();
+    // ============================================
+    // Date Range Filter Logic
+    // ============================================
 
-    } catch (error) {
-      console.error('PDF export failed:', error);
-      alert('Failed to generate PDF: ' + error.message + '. Please try the HTML export instead.');
-    } finally {
-      btn.innerHTML = originalText;
-      btn.classList.remove('disabled');
+    // Get date range from data
+    const dataStartDate = new Date('{{ data.period_start }}');
+    const dataEndDate = new Date('{{ data.period_end }}');
+
+    // Set date input constraints
+    document.getElementById('filterStartDate').min = '{{ data.period_start }}';
+    document.getElementById('filterStartDate').max = '{{ data.period_end }}';
+    document.getElementById('filterEndDate').min = '{{ data.period_start }}';
+    document.getElementById('filterEndDate').max = '{{ data.period_end }}';
+
+    // Filter trades by date range
+    function filterTradesByDateRange(startDate, endDate) {
+      return originalTrades.filter(trade => {
+        const tradeDate = parseTradeDate(trade.close_time);
+        const tradeDateOnly = new Date(tradeDate.getFullYear(), tradeDate.getMonth(), tradeDate.getDate());
+        const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        return tradeDateOnly >= start && tradeDateOnly <= end;
+      });
     }
-  });
+
+    // Update summary cards with new values
+    function updateSummaryCards(totals) {
+      const notionalEl = document.querySelector('.card.bg-primary .count-up');
+      const tradesEl = document.querySelector('.card.bg-success .count-up');
+      const lotsEl = document.querySelector('.card.bg-info .count-up');
+
+      // Animate to new values
+      animateCountUp(notionalEl, totals.totalNotional, 2, 800);
+      animateCountUp(tradesEl, totals.totalTrades, 0, 800);
+      animateCountUp(lotsEl, totals.totalLots, 2, 800);
+    }
+
+    // Update summary table
+    function updateSummaryTable(summary) {
+      const tbody = document.querySelector('#summaryTableContainer tbody');
+
+      if (summary.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No trades in selected date range</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = summary.map(row => `
+        <tr>
+          <td><strong>${row.symbol}</strong></td>
+          <td class="text-end">${formatNumber(row.total_lots)}</td>
+          <td class="text-end">$${formatNumber(row.notional_usd)}</td>
+          <td>
+            <div class="d-flex align-items-center">
+              <div class="progress flex-grow-1" style="height: 8px">
+                <div class="progress-bar bg-primary" role="progressbar" style="width: ${row.percentage}%;" aria-valuenow="${row.percentage}" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+              <small class="ms-2 text-muted" style="min-width: 45px">${formatNumber(row.percentage, 1)}%</small>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Update trades table
+    function updateTradesTable(trades) {
+      const tbody = document.querySelector('#tradesTable tbody');
+
+      if (trades.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No trades in selected date range</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = trades.map(trade => {
+        const closeTime = formatDateTime(trade.close_time);
+        const typeBadge = trade.type === 'buy'
+          ? '<span class="badge bg-success">buy</span>'
+          : '<span class="badge bg-danger">sell</span>';
+
+        let fxBadge;
+        if (trade.fx_source === 'direct') {
+          fxBadge = '<span class="badge bg-secondary">direct</span>';
+        } else if (trade.fx_source === 'api') {
+          fxBadge = '<span class="badge bg-success">api</span>';
+        } else if (trade.fx_source === 'api_cached') {
+          fxBadge = '<span class="badge bg-info">cached</span>';
+        } else {
+          fxBadge = '<span class="badge bg-warning text-dark">fallback</span>';
+        }
+
+        return `
+          <tr>
+            <td>${closeTime}</td>
+            <td><strong>${trade.symbol}</strong></td>
+            <td>${typeBadge}</td>
+            <td class="text-end">${formatNumber(trade.lots)}</td>
+            <td class="text-end">${formatNumber(trade.close_price)}</td>
+            <td class="text-end">${trade.fx_rate.toFixed(4)}</td>
+            <td class="text-center ps-5 pe-4">${fxBadge}</td>
+            <td class="text-end fw-semibold">$${formatNumber(trade.notional_usd)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Update pie chart
+    function updatePieChart(summary) {
+      if (summary.length === 0) {
+        Plotly.react('pieChart', [{
+          type: 'pie',
+          labels: ['No Data'],
+          values: [1],
+          hole: 0.3,
+          textinfo: 'label',
+          marker: { colors: ['#e9ecef'] }
+        }], pieChartData.layout, config);
+        return;
+      }
+
+      const newLabels = summary.map(s => s.symbol);
+      const newValues = summary.map(s => s.notional_usd);
+
+      Plotly.react('pieChart', [{
+        type: 'pie',
+        labels: newLabels,
+        values: newValues,
+        hole: 0.3,
+        textposition: 'inside',
+        textinfo: 'percent+label',
+        rotation: 90,
+        direction: 'clockwise',
+        marker: {
+          line: {
+            color: '#ffffff',
+            width: 0.5
+          }
+        }
+      }], pieChartData.layout, config);
+    }
+
+    // Update FX sources section
+    function updateFxSources(fxSummary) {
+      const container = document.querySelector('.card:has(.bi-currency-exchange) .row');
+
+      const items = [];
+      if (fxSummary.direct > 0) {
+        items.push(`
+          <div class="col-md-3 mb-2">
+            <div class="d-flex align-items-center">
+              <span class="badge bg-secondary me-2">${fxSummary.direct}</span>
+              <span>Direct USD quote</span>
+            </div>
+          </div>
+        `);
+      }
+      if (fxSummary.api > 0) {
+        items.push(`
+          <div class="col-md-3 mb-2">
+            <div class="d-flex align-items-center">
+              <span class="badge bg-success me-2">${fxSummary.api}</span>
+              <span>Historical API</span>
+            </div>
+          </div>
+        `);
+      }
+      if (fxSummary.api_cached > 0) {
+        items.push(`
+          <div class="col-md-3 mb-2">
+            <div class="d-flex align-items-center">
+              <span class="badge bg-info me-2">${fxSummary.api_cached}</span>
+              <span>Cached API</span>
+            </div>
+          </div>
+        `);
+      }
+      if (fxSummary.fallback > 0) {
+        items.push(`
+          <div class="col-md-3 mb-2">
+            <div class="d-flex align-items-center">
+              <span class="badge bg-warning text-dark me-2">${fxSummary.fallback}</span>
+              <span>Fallback rates</span>
+              <i class="bi bi-exclamation-triangle text-warning ms-1" title="Approximate rates used"></i>
+            </div>
+          </div>
+        `);
+      }
+
+      container.innerHTML = items.length > 0 ? items.join('') : '<div class="col-12 text-muted">No trades in selected date range</div>';
+    }
+
+    // Update filter status display
+    function updateFilterStatus(startDate, endDate, filteredCount, totalCount, isFiltered) {
+      const statusEl = document.getElementById('filterStatus');
+      const statusTextEl = document.getElementById('filterStatusText');
+      const badgeEl = document.getElementById('filterBadge');
+
+      if (isFiltered) {
+        const startStr = startDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: '2-digit' });
+        const endStr = endDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: '2-digit' });
+        statusTextEl.textContent = `Showing trades from ${startStr}       to ${endStr} (${filteredCount} of ${totalCount} trades)`;
+        statusEl.style.display = 'block';
+        badgeEl.style.display = 'inline-block';
+      } else {
+        statusEl.style.display = 'none';
+        badgeEl.style.display = 'none';
+      }
+    }
+
+    // Apply filter
+    function applyFilter(startDate, endDate, isFiltered = true) {
+      // Filter trades
+      const filteredTrades = filterTradesByDateRange(startDate, endDate);
+      currentFilteredTrades = filteredTrades;
+      window.currentFilteredData = filteredTrades;
+
+      // Recalculate all summaries
+      const results = recalculateSummary(filteredTrades);
+
+      // Update all UI components
+      updateSummaryCards(results);
+      updateSummaryTable(results.summary);
+      updateTradesTable(filteredTrades);
+      updatePieChart(results.summary);
+      updateFxSources(results.fxSummary);
+      updateFilterStatus(startDate, endDate, filteredTrades.length, originalTrades.length, isFiltered);
+
+      // Re-match card heights after table update
+      setTimeout(matchCardHeights, 100);
+    }
+
+    // Reset to all data
+    function resetFilter() {
+      currentFilteredTrades = [...originalTrades];
+      window.currentFilteredData = currentFilteredTrades;
+
+      // Reset UI
+      updateSummaryCards(originalTotals);
+      updateSummaryTable(originalSummary);
+      updateTradesTable(originalTrades);
+
+      // Reset pie chart with original data
+      Plotly.react('pieChart', [{
+        type: 'pie',
+        labels: originalSummary.map(s => s.symbol),
+        values: originalSummary.map(s => s.notional_usd),
+        hole: 0.3,
+        textposition: 'inside',
+        textinfo: 'percent+label',
+        rotation: 90,
+        direction: 'clockwise',
+        marker: {
+          line: {
+            color: '#ffffff',
+            width: 0.5
+          }
+        }
+      }], pieChartData.layout, config);
+
+      updateFxSources(originalFxSummary);
+      updateFilterStatus(null, null, 0, 0, false);
+
+      // Reset date inputs
+      document.getElementById('filterStartDate').value = '';
+      document.getElementById('filterEndDate').value = '';
+
+      // Reset preset buttons
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.classList.remove('active', 'btn-primary');
+        btn.classList.add('btn-outline-primary');
+      });
+      const allBtn = document.querySelector('.preset-btn[data-preset="all"]');
+      allBtn.classList.remove('btn-outline-primary');
+      allBtn.classList.add('active', 'btn-primary');
+
+      setTimeout(matchCardHeights, 100);
+    }
+
+    // Preset button handlers
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const preset = this.dataset.preset;
+
+        // Update button states
+        document.querySelectorAll('.preset-btn').forEach(b => {
+          b.classList.remove('active', 'btn-primary');
+          b.classList.add('btn-outline-primary');
+        });
+        this.classList.remove('btn-outline-primary');
+        this.classList.add('active', 'btn-primary');
+
+        // Clear custom date inputs
+        document.getElementById('filterStartDate').value = '';
+        document.getElementById('filterEndDate').value = '';
+
+        if (preset === 'all') {
+          resetFilter();
+          return;
+        }
+
+        // Use today's date as the reference point for presets
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize to start of day
+        let startDate, endDate = today;
+
+        if (preset === '7') {
+          startDate = new Date(today);
+          startDate.setDate(startDate.getDate() - 6); // Last 7 days including today
+        } else if (preset === '30') {
+          startDate = new Date(today);
+          startDate.setDate(startDate.getDate() - 29); // Last 30 days including today
+        } else if (preset === 'month') {
+          // This calendar month (1st of current month to today)
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        }
+
+        applyFilter(startDate, endDate, true);
+      });
+    });
+
+    // Apply custom filter button
+    document.getElementById('applyCustomFilter').addEventListener('click', function() {
+      const startInput = document.getElementById('filterStartDate').value;
+      const endInput = document.getElementById('filterEndDate').value;
+
+      if (!startInput || !endInput) {
+        alert('Please select both start and end dates');
+        return;
+      }
+
+      const startDate = new Date(startInput);
+      const endDate = new Date(endInput);
+
+      if (startDate > endDate) {
+        alert('Start date must be before or equal to end date');
+        return;
+      }
+
+      // Clear preset button states
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.classList.remove('active', 'btn-primary');
+        btn.classList.add('btn-outline-primary');
+      });
+
+      applyFilter(startDate, endDate, true);
+    });
+
+    // Reset button handler
+    document.getElementById('resetFilter').addEventListener('click', resetFilter);
+
+    // Collapse icon rotation
+    document.getElementById('filterCollapse').addEventListener('show.bs.collapse', function() {
+      document.querySelector('.collapse-icon').style.transform = 'rotate(0deg)';
+    });
+    document.getElementById('filterCollapse').addEventListener('hide.bs.collapse', function() {
+      document.querySelector('.collapse-icon').style.transform = 'rotate(-90deg)';
+    });
 </script>
 {% endblock %}

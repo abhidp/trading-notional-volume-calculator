@@ -121,8 +121,8 @@ def upload():
         num_symbols = len(pie_labels)
 
         # Calculate dynamic height based on number of legend items
-        # Base height for chart + extra rows for legends (4 items per row approx)
-        legend_rows = (num_symbols + 3) // 4  # ceiling division
+        # Base height for chart + extra rows for legends (5 items per row approx)
+        legend_rows = (num_symbols + 5) // 6  # ceiling division
         legend_height = legend_rows * 22
         chart_height = 450 + legend_height  # Larger base height for bigger pie
 
@@ -161,8 +161,8 @@ def upload():
             'total_notional': total_notional,
             'total_trades': total_trades,
             'total_lots': total_lots,
-            'period_start': period_start.strftime('%Y-%m-%d') if hasattr(period_start, 'strftime') else str(period_start),
-            'period_end': period_end.strftime('%Y-%m-%d') if hasattr(period_end, 'strftime') else str(period_end),
+            'period_start': period_start.strftime('%d-%m-%Y') if hasattr(period_start, 'strftime') else str(period_start),
+            'period_end': period_end.strftime('%d-%m-%Y') if hasattr(period_end, 'strftime') else str(period_end),
             'trades': calculated_df.to_dict('records'),
             'summary': summary_df.to_dict('records'),
             'fx_summary': fx_summary,
@@ -261,11 +261,14 @@ def percentage_filter(value):
 
 @app.template_filter('datetime')
 def datetime_filter(value):
-    """Format datetime value"""
+    """Format datetime value as '07 Jan 2026 18:48'"""
     try:
         if hasattr(value, 'strftime'):
-            return value.strftime('%Y-%m-%d %H:%M:%S')
-        return str(value)[:19]
+            return value.strftime('%d %b %Y %H:%M')
+        # Parse string and reformat
+        from datetime import datetime as dt
+        parsed = dt.fromisoformat(str(value).replace(' ', 'T')[:19])
+        return parsed.strftime('%d %b %Y %H:%M')
     except (ValueError, TypeError):
         return value
 
