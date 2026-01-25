@@ -105,15 +105,16 @@ class CTraderParser(BaseParser):
             df['_lots'] = df[volume_col].astype(float)
 
         # Handle open_time - use close_time if not available
+        # Use dayfirst=True to interpret dates as DD/MM/YYYY (non-American format)
         if open_time_col:
-            open_times = pd.to_datetime(df[open_time_col], format='mixed')
+            open_times = pd.to_datetime(df[open_time_col], format='mixed', dayfirst=True)
         else:
-            open_times = pd.to_datetime(df[close_time_col], format='mixed')
+            open_times = pd.to_datetime(df[close_time_col], format='mixed', dayfirst=True)
 
         # Map columns to standardized format
         standardized = pd.DataFrame({
             'open_time': open_times,
-            'close_time': pd.to_datetime(df[close_time_col], format='mixed'),
+            'close_time': pd.to_datetime(df[close_time_col], format='mixed', dayfirst=True),
             'symbol': df['_clean_symbol'],
             'type': df[direction_col].str.lower(),
             'lots': df['_lots'],

@@ -131,7 +131,7 @@
             <tbody>
                 {% for trade in data.trades %}
                 <tr>
-                    <td>{{ trade.close_time[:19] if trade.close_time is string else trade.close_time.strftime('%Y-%m-%d %H:%M:%S') if trade.close_time.strftime is defined else trade.close_time }}</td>
+                    <td>{{ trade.close_time|datetime }}</td>
                     <td><strong>{{ trade.symbol }}</strong></td>
                     <td class="text-center">
                         {% if trade.type == 'buy' %}

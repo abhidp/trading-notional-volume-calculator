@@ -206,3 +206,74 @@ tr:nth-child(8) .progress-bar { animation-delay: 1.4s; }
     width: 1rem;
     height: 1rem;
 }
+
+/* Date Range Filter Styles */
+.filter-card {
+    border: 1px solid #dee2e6;
+    transition: box-shadow 0.3s ease;
+}
+
+.filter-card:hover {
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+.filter-card .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.filter-card .card-header:hover {
+    background-color: #e9ecef;
+}
+
+.collapse-icon {
+    transition: transform 0.3s ease;
+    font-size: 0.8rem;
+}
+
+.filter-status-badge {
+    font-size: 0.75rem;
+}
+
+/* Preset button group */
+#presetButtons {
+    gap: 0.25rem;
+}
+
+#presetButtons .btn {
+    border-radius: 0.375rem !important;
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.filter-status {
+    font-size: 0.875rem;
+}
+
+/* Responsive adjustments for filter */
+@media (max-width: 992px) {
+    #presetButtons {
+        width: 100%;
+    }
+
+    #presetButtons .btn {
+        flex: 1;
+        min-width: 70px;
+    }
+}
+
+@media (max-width: 576px) {
+    #presetButtons .btn {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+    .filter-card .card-body .d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .filter-card input[type="date"] {
+        max-width: 100% !important;
+    }
+}
