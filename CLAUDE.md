@@ -67,11 +67,20 @@ git push origin main
 | forex_cross | GBPJPY | lots × 100,000 × base_to_USD_rate |
 | commodity | XAUUSD | lots × contract_size × close_price × fx_rate |
 
+### Static Assets
+- `static/css/style.css` - Custom styles and animations
+- `static/images/favicon.svg` - SVG favicon (dark bg with teal chart line)
+
 ### Deployment
 - Hosted on Vercel (serverless)
 - `vercel.json` configures Python runtime
 - No file system access - all processing in memory
 - Export HTML uses client-side Plotly.js for charts
+
+### CI/CD
+- **Pre-commit hooks**: Ruff linter/formatter (install with `pre-commit install`)
+- **GitHub Actions**: Lint workflow, CodeQL security scanning, Snyk dependency scanning
+- **Vercel**: Auto-deploys from main branch
 
 ## Adding New Trading Platform Parser
 
