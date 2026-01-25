@@ -1,6 +1,8 @@
 # Trading Notional Volume Calculator
 
 [![Vercel](https://vercelbadge.vercel.app/api/abhidp/trading-notional-volume-calculator)](https://vercel.com/abhidp/trading-notional-volume-calculator)
+[![Lint](https://github.com/abhidp/trading-notional-volume-calculator/actions/workflows/lint.yml/badge.svg)](https://github.com/abhidp/trading-notional-volume-calculator/actions/workflows/lint.yml)
+[![CodeQL](https://github.com/abhidp/trading-notional-volume-calculator/actions/workflows/codeql.yml/badge.svg)](https://github.com/abhidp/trading-notional-volume-calculator/actions/workflows/codeql.yml)
 [![Open Source](https://img.shields.io/badge/Open%20Source-Yes-brightgreen)](https://github.com/abhidp/trading-notional-volume-calculator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -247,6 +249,34 @@ After processing a trade history file, you'll see:
 - **Not for**: Futures, Options, or exchange-traded securities (results may be inaccurate)
 - **Stock CFDs**: Currently not supported (planned for future release)
 
+## Development
+
+### Setting Up Development Environment
+
+1. Install development dependencies:
+```bash
+pip install -r requirements-dev.txt
+```
+
+2. Install pre-commit hooks (runs linting before each commit):
+```bash
+pre-commit install
+```
+
+3. Run linting manually:
+```bash
+ruff check .        # Check for issues
+ruff check . --fix  # Auto-fix issues
+ruff format .       # Format code
+```
+
+### CI/CD
+
+This project uses GitHub Actions for:
+- **Lint** - Ruff linter runs on all PRs
+- **CodeQL** - Security vulnerability scanning (free for public repos)
+- **Snyk** - Dependency vulnerability scanning (free tier)
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
@@ -259,9 +289,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Set up pre-commit hooks (`pre-commit install`)
+4. Make your changes and commit (`git commit -m 'Add amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
 ## Support
 
