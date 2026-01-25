@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark background with rounded corners -->
+  <rect width="32" height="32" rx="6" fill="#212529"/>
+
+  <!-- Grid lines (subtle) -->
+  <line x1="6" y1="10" x2="26" y2="10" stroke="#444" stroke-width="0.5"/>
+  <line x1="6" y1="16" x2="26" y2="16" stroke="#444" stroke-width="0.5"/>
+  <line x1="6" y1="22" x2="26" y2="22" stroke="#444" stroke-width="0.5"/>
+
+  <!-- Upward trending chart line -->
+  <polyline
+    points="6,22 11,18 16,20 21,12 26,6"
+    fill="none"
+    stroke="#20c997"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+
+  <!-- Data point at the peak -->
+  <circle cx="26" cy="6" r="2" fill="#20c997"/>
+
+  <!-- Arrow head pointing up -->
+  <polygon points="26,3 24,7 28,7" fill="#20c997"/>
+</svg>
