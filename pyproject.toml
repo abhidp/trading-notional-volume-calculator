@@ -9,6 +9,14 @@ authors = [
     { name = "ABHI TRADES PTY LTD" }
 ]
 keywords = ["trading", "notional", "volume", "mt5", "ctrader", "forex", "cfd"]
+dependencies = [
+    "pandas>=2.0.0",
+    "openpyxl>=3.1.0",
+    "requests>=2.31.0",
+    "flask>=3.0.0",
+    "plotly>=5.18.0",
+    "gunicorn>=21.0.0",
+]
 
 [tool.ruff]
 # Target Python 3.10+
