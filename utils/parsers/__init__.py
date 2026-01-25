@@ -1,15 +1,16 @@
 from io import BytesIO
+
 from .base import BaseParser
-from .mt5 import MT5Parser
 from .ctrader import CTraderParser
+from .mt5 import MT5Parser
 
 # List of all available parsers
 PARSERS = [MT5Parser(), CTraderParser()]
 
 # Platform name mapping
 PLATFORM_PARSERS = {
-    'mt5': MT5Parser,
-    'ctrader': CTraderParser,
+    "mt5": MT5Parser,
+    "ctrader": CTraderParser,
 }
 
 
@@ -28,10 +29,7 @@ def get_parser(platform: str) -> BaseParser:
     """Get parser by platform name"""
     platform_lower = platform.lower()
     if platform_lower not in PLATFORM_PARSERS:
-        raise ValueError(
-            f"Unknown platform: {platform}\n"
-            f"Supported platforms: {', '.join(PLATFORM_PARSERS.keys())}"
-        )
+        raise ValueError(f"Unknown platform: {platform}\nSupported platforms: {', '.join(PLATFORM_PARSERS.keys())}")
     return PLATFORM_PARSERS[platform_lower]()
 
 

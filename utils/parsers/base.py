@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from io import BytesIO
-from typing import Union
+
 import pandas as pd
 
 
@@ -41,5 +41,5 @@ class BaseParser(ABC):
         if not isinstance(symbol, str):
             return str(symbol)
         # Remove common suffixes and special characters
-        cleaned = symbol.replace('+', '').replace('.', '').replace('/', '').replace('_', '')
+        cleaned = symbol.replace("+", "").replace(".", "").replace("/", "").replace("_", "")
         return cleaned.upper()

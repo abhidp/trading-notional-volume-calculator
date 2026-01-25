@@ -1,5 +1,7 @@
-import pandas as pd
 from io import BytesIO
+
+import pandas as pd
+
 from .base import BaseParser
 
 
@@ -9,17 +11,17 @@ class CTraderParser(BaseParser):
     # Column name mappings - cTrader exports may use different column names
     # depending on broker or cTrader version
     COLUMN_MAPPINGS = {
-        'position_id': ['Position ID', 'Order ID'],
-        'symbol': ['Symbol'],
-        'direction': ['Direction', 'Opening direction'],
-        'open_time': ['Opening Time', 'Opening time'],
-        'close_time': ['Closing Time', 'Closing time'],
-        'open_price': ['Opening Price', 'Entry price'],
-        'close_price': ['Closing Price', 'Closing price'],
-        'volume': ['Volume', 'Closing Quantity'],
-        'commission': ['Commission'],
-        'swap': ['Swap'],
-        'profit': ['Net Profit', 'Net AUD', 'Net USD', 'Net EUR', 'Gross Profit'],
+        "position_id": ["Position ID", "Order ID"],
+        "symbol": ["Symbol"],
+        "direction": ["Direction", "Opening direction"],
+        "open_time": ["Opening Time", "Opening time"],
+        "close_time": ["Closing Time", "Closing time"],
+        "open_price": ["Opening Price", "Entry price"],
+        "close_price": ["Closing Price", "Closing price"],
+        "volume": ["Volume", "Closing Quantity"],
+        "commission": ["Commission"],
+        "swap": ["Swap"],
+        "profit": ["Net Profit", "Net AUD", "Net USD", "Net EUR", "Gross Profit"],
     }
 
     # Threshold to determine if volume is in units or lots
@@ -31,19 +33,16 @@ class CTraderParser(BaseParser):
         """Check for cTrader-specific columns"""
         try:
             file_data.seek(0)
-            if filename.endswith('.xlsx'):
+            if filename.endswith(".xlsx"):
                 df = pd.read_excel(file_data, nrows=1)
-            elif filename.endswith('.csv'):
+            elif filename.endswith(".csv"):
                 df = pd.read_csv(file_data, nrows=1)
             else:
                 return False
             file_data.seek(0)
 
             # Check for any cTrader-specific column combinations
-            ctrader_indicators = [
-                'Position ID', 'Order ID', 'Opening direction',
-                'Closing Quantity', 'Entry price'
-            ]
+            ctrader_indicators = ["Position ID", "Order ID", "Opening direction", "Closing Quantity", "Entry price"]
             return any(col in df.columns for col in ctrader_indicators)
         except Exception:
             file_data.seek(0)
@@ -62,15 +61,17 @@ class CTraderParser(BaseParser):
         col = self._get_column(df, field)
         if col is None:
             possible_names = self.COLUMN_MAPPINGS.get(field, [field])
-            raise ValueError(f"Could not find column for '{field}'. Expected one of: {possible_names}. Available: {list(df.columns)}")
+            raise ValueError(
+                f"Could not find column for '{field}'. Expected one of: {possible_names}. Available: {list(df.columns)}"
+            )
         return col
 
     def parse(self, file_data: BytesIO, filename: str) -> pd.DataFrame:
         """Parse cTrader trade history file"""
         file_data.seek(0)
-        if filename.endswith('.xlsx'):
+        if filename.endswith(".xlsx"):
             df = pd.read_excel(file_data)
-        elif filename.endswith('.csv'):
+        elif filename.endswith(".csv"):
             df = pd.read_csv(file_data)
         else:
             raise ValueError(f"Unsupported file format: {filename}")
@@ -79,51 +80,53 @@ class CTraderParser(BaseParser):
             raise ValueError("No data found in the file")
 
         # Get actual column names
-        symbol_col = self._get_column_required(df, 'symbol')
-        direction_col = self._get_column_required(df, 'direction')
-        volume_col = self._get_column_required(df, 'volume')
-        close_price_col = self._get_column_required(df, 'close_price')
-        close_time_col = self._get_column_required(df, 'close_time')
+        symbol_col = self._get_column_required(df, "symbol")
+        direction_col = self._get_column_required(df, "direction")
+        volume_col = self._get_column_required(df, "volume")
+        close_price_col = self._get_column_required(df, "close_price")
+        close_time_col = self._get_column_required(df, "close_time")
 
         # Optional columns
-        open_price_col = self._get_column(df, 'open_price')
-        open_time_col = self._get_column(df, 'open_time')
-        commission_col = self._get_column(df, 'commission')
-        swap_col = self._get_column(df, 'swap')
-        profit_col = self._get_column(df, 'profit')
+        open_price_col = self._get_column(df, "open_price")
+        open_time_col = self._get_column(df, "open_time")
+        commission_col = self._get_column(df, "commission")
+        swap_col = self._get_column(df, "swap")
+        profit_col = self._get_column(df, "profit")
 
         # Clean symbols
-        df['_clean_symbol'] = df[symbol_col].apply(self.clean_symbol)
+        df["_clean_symbol"] = df[symbol_col].apply(self.clean_symbol)
 
         # Determine if volume is in units or lots
         max_volume = df[volume_col].max()
         if max_volume > self.VOLUME_UNITS_THRESHOLD:
             # Volume is in units, convert to lots
-            df['_lots'] = df[volume_col] / self.VOLUME_DIVISOR
+            df["_lots"] = df[volume_col] / self.VOLUME_DIVISOR
         else:
             # Volume is already in lots
-            df['_lots'] = df[volume_col].astype(float)
+            df["_lots"] = df[volume_col].astype(float)
 
         # Handle open_time - use close_time if not available
         # Use dayfirst=True to interpret dates as DD/MM/YYYY (non-American format)
         if open_time_col:
-            open_times = pd.to_datetime(df[open_time_col], format='mixed', dayfirst=True)
+            open_times = pd.to_datetime(df[open_time_col], format="mixed", dayfirst=True)
         else:
-            open_times = pd.to_datetime(df[close_time_col], format='mixed', dayfirst=True)
+            open_times = pd.to_datetime(df[close_time_col], format="mixed", dayfirst=True)
 
         # Map columns to standardized format
-        standardized = pd.DataFrame({
-            'open_time': open_times,
-            'close_time': pd.to_datetime(df[close_time_col], format='mixed', dayfirst=True),
-            'symbol': df['_clean_symbol'],
-            'type': df[direction_col].str.lower(),
-            'lots': df['_lots'],
-            'open_price': df[open_price_col].astype(float) if open_price_col else 0.0,
-            'close_price': df[close_price_col].astype(float),
-            'commission': df[commission_col].astype(float) if commission_col else 0.0,
-            'swap': df[swap_col].astype(float) if swap_col else 0.0,
-            'profit': df[profit_col].astype(float) if profit_col else 0.0,
-        })
+        standardized = pd.DataFrame(
+            {
+                "open_time": open_times,
+                "close_time": pd.to_datetime(df[close_time_col], format="mixed", dayfirst=True),
+                "symbol": df["_clean_symbol"],
+                "type": df[direction_col].str.lower(),
+                "lots": df["_lots"],
+                "open_price": df[open_price_col].astype(float) if open_price_col else 0.0,
+                "close_price": df[close_price_col].astype(float),
+                "commission": df[commission_col].astype(float) if commission_col else 0.0,
+                "swap": df[swap_col].astype(float) if swap_col else 0.0,
+                "profit": df[profit_col].astype(float) if profit_col else 0.0,
+            }
+        )
 
         return standardized
 

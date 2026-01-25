@@ -1,0 +1,58 @@
+[project]
+name = "trading-notional-volume-calculator"
+version = "1.0.0"
+description = "Calculate notional trading volume from MT5 & cTrader exports"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+    { name = "ABHI TRADES PTY LTD" }
+]
+keywords = ["trading", "notional", "volume", "mt5", "ctrader", "forex", "cfd"]
+
+[tool.ruff]
+# Target Python 3.10+
+target-version = "py310"
+
+# Line length to match common standards
+line-length = 120
+
+# Exclude common directories
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "outputs",
+    "*.pyc",
+]
+
+[tool.ruff.lint]
+# Enable these rule sets
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort (import sorting)
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "SIM",    # flake8-simplify
+]
+
+# Ignore specific rules
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # function call in default argument (needed for Flask)
+    "SIM108", # ternary operator (sometimes less readable)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["utils"]
+
+[tool.ruff.format]
+# Use double quotes for strings
+quote-style = "double"
+
+# Indent with spaces
+indent-style = "space"
