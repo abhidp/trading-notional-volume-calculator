@@ -121,16 +121,26 @@ def print_console_report(
     fx_summary: dict,
     platform_name: str,
     filepath: str,
-    auto_detected: bool = True
+    auto_detected: bool = True,
+    date_filter: str = None
 ):
     """
     Print formatted report to console.
+
+    Args:
+        date_filter: Optional description of applied date filter (e.g., "last 7 days")
     """
     total_notional = calculated_df['notional_usd'].sum()
     total_trades = len(calculated_df)
     total_lots = calculated_df['lots'].sum()
     period_start = calculated_df['close_time'].min()
     period_end = calculated_df['close_time'].max()
+
+    # Format dates as DD-MM-YYYY
+    def format_date(dt):
+        if hasattr(dt, 'strftime'):
+            return dt.strftime('%d-%m-%Y')
+        return str(dt)
 
     print()
     print("=" * 70)
@@ -139,7 +149,9 @@ def print_console_report(
     print(f"File: {Path(filepath).name}")
     detection_method = "(auto-detected)" if auto_detected else "(specified)"
     print(f"Platform: {platform_name} {detection_method}")
-    print(f"Period: {period_start.strftime('%Y-%m-%d') if hasattr(period_start, 'strftime') else period_start} to {period_end.strftime('%Y-%m-%d') if hasattr(period_end, 'strftime') else period_end}")
+    print(f"Period: {format_date(period_start)} to {format_date(period_end)}")
+    if date_filter:
+        print(f"Filter: {date_filter}")
     print("-" * 70)
 
     # Trade details table
