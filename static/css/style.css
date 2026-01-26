@@ -1,5 +1,36 @@
 /* Custom styles for Trading Notional Calculator */
 
+/* Theme-aware CSS variables */
+[data-bs-theme='light'] {
+  --upload-bg: #f8f9fa;
+  --upload-border: #dee2e6;
+  --upload-hover-bg: #e7f1ff;
+  --upload-hover-border: #0d6efd;
+  --upload-dragover-bg: #cfe2ff;
+  --filter-header-bg: #f8f9fa;
+  --filter-header-hover-bg: #e9ecef;
+  --filter-border: #dee2e6;
+  --card-shadow: rgba(0, 0, 0, 0.15);
+  --card-glow-primary: rgba(13, 110, 253, 0.5);
+  --card-glow-success: rgba(25, 135, 84, 0.5);
+  --card-glow-info: rgba(13, 202, 240, 0.5);
+}
+
+[data-bs-theme='dark'] {
+  --upload-bg: #2b3035;
+  --upload-border: #495057;
+  --upload-hover-bg: #1e3a5f;
+  --upload-hover-border: #0d6efd;
+  --upload-dragover-bg: #1a4971;
+  --filter-header-bg: #2b3035;
+  --filter-header-hover-bg: #343a40;
+  --filter-border: #495057;
+  --card-shadow: rgba(0, 0, 0, 0.3);
+  --card-glow-primary: rgba(13, 110, 253, 0.4);
+  --card-glow-success: rgba(25, 135, 84, 0.4);
+  --card-glow-info: rgba(13, 202, 240, 0.4);
+}
+
 body {
   min-height: 100vh;
   display: flex;
@@ -21,21 +52,21 @@ main {
 
 /* Upload area styling */
 .upload-area {
-  border: 2px dashed #dee2e6;
+  border: 2px dashed var(--upload-border);
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  background-color: #f8f9fa;
+  background-color: var(--upload-bg);
 }
 
 .upload-area:hover {
-  border-color: #0d6efd;
-  background-color: #e7f1ff;
+  border-color: var(--upload-hover-border);
+  background-color: var(--upload-hover-bg);
 }
 
 .upload-area.drag-over {
-  border-color: #0d6efd;
-  background-color: #cfe2ff;
+  border-color: var(--upload-hover-border);
+  background-color: var(--upload-dragover-bg);
 }
 
 /* Card hover effects */
@@ -44,7 +75,7 @@ main {
 }
 
 .card:hover {
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0.5rem 1rem var(--card-shadow);
 }
 
 /* Summary cards - Enhanced hover with lift and glow */
@@ -57,19 +88,19 @@ main {
 
 .summary-card:hover {
   transform: translateY(-10px) scale(1.02) !important;
-  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.25) !important;
+  box-shadow: 0 1.5rem 3rem var(--card-shadow) !important;
 }
 
 .summary-card.bg-primary:hover {
-  box-shadow: 0 1.5rem 3rem rgba(13, 110, 253, 0.5) !important;
+  box-shadow: 0 1.5rem 3rem var(--card-glow-primary) !important;
 }
 
 .summary-card.bg-success:hover {
-  box-shadow: 0 1.5rem 3rem rgba(25, 135, 84, 0.5) !important;
+  box-shadow: 0 1.5rem 3rem var(--card-glow-success) !important;
 }
 
 .summary-card.bg-info:hover {
-  box-shadow: 0 1.5rem 3rem rgba(13, 202, 240, 0.5) !important;
+  box-shadow: 0 1.5rem 3rem var(--card-glow-info) !important;
 }
 
 /* Staggered fade-in animation for cards */
@@ -231,9 +262,24 @@ tr:nth-child(8) .progress-bar {
   font-weight: 600;
 }
 
+/* Theme toggle button */
+#themeToggle {
+  border: none;
+  background: transparent;
+  transition: transform 0.3s ease;
+}
+
+#themeToggle:hover {
+  transform: rotate(20deg) scale(1.1);
+}
+
+#themeToggle:focus {
+  box-shadow: none;
+}
+
 /* Form styling */
 .form-label {
-  color: #495057;
+  /* Color handled by Bootstrap theme */
 }
 
 .form-text {
@@ -248,21 +294,21 @@ tr:nth-child(8) .progress-bar {
 
 /* Date Range Filter Styles */
 .filter-card {
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--filter-border);
   transition: box-shadow 0.3s ease;
 }
 
 .filter-card:hover {
-  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0.25rem 0.5rem var(--card-shadow);
 }
 
 .filter-card .card-header {
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  background-color: var(--filter-header-bg);
+  border-bottom: 1px solid var(--filter-border);
 }
 
 .filter-card .card-header:hover {
-  background-color: #e9ecef;
+  background-color: var(--filter-header-hover-bg);
 }
 
 .collapse-icon {

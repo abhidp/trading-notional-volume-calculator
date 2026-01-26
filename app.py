@@ -142,6 +142,8 @@ def upload():
             },
             margin={"t": 10, "b": legend_height + 30, "l": 10, "r": 10},  # Extra bottom margin for gap
             height=chart_height,
+            paper_bgcolor="rgba(0,0,0,0)",  # Transparent background for dark mode support
+            plot_bgcolor="rgba(0,0,0,0)",
         )
         pie_chart_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 

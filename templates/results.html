@@ -463,11 +463,23 @@ Calculator{% endblock %} {% block content %}
     const labels = pieChartData.data[0].labels;
     const numSegments = values.length;
 
+    // Get theme-aware colors for chart
+    function getChartColors() {
+      const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+      return {
+        legendFont: isDark ? '#dee2e6' : '#212529',
+        sliceBorder: isDark ? '#495057' : '#ffffff'
+      };
+    }
+
+    const chartColors = getChartColors();
+
     // Disable legend click to prevent hiding segments
     pieChartData.layout.legend = {
       ...pieChartData.layout.legend,
       itemclick: false,
-      itemdoubleclick: false
+      itemdoubleclick: false,
+      font: { color: chartColors.legendFont }
     };
 
     // Config - hide toolbar for cleaner look
@@ -493,7 +505,7 @@ Calculator{% endblock %} {% block content %}
       hoverinfo: 'none',
       marker: {
         line: {
-          color: '#ffffff',
+          color: chartColors.sliceBorder,
           width: 0.5
         }
       }
@@ -636,6 +648,24 @@ Calculator{% endblock %} {% block content %}
 
     // Also match on window resize
     window.addEventListener('resize', matchCardHeights);
+
+    // Update chart colors when theme changes
+    function updateChartTheme() {
+      const colors = getChartColors();
+      pieChartData.layout.legend.font = { color: colors.legendFont };
+      Plotly.relayout('pieChart', {
+        'legend.font.color': colors.legendFont
+      });
+    }
+
+    // Listen for theme toggle clicks
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+      themeToggle.addEventListener('click', () => {
+        // Small delay to let the theme change apply first
+        setTimeout(updateChartTheme, 50);
+      });
+    }
 
     // ============================================
     // Data Initialization (for filtering and exports)
