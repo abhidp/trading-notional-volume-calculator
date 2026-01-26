@@ -7,6 +7,28 @@
       {% block title %}Trading Notional Volume Calculator{% endblock %}
     </title>
 
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="{% block description %}Free tool to calculate notional trading volume in USD from MT5 and cTrader trade history exports. Supports Forex, Commodities, Indices, and Crypto CFDs.{% endblock %}" />
+    <meta name="keywords" content="notional volume, trading calculator, MT5, MetaTrader 5, cTrader, forex volume, CFD calculator, trading volume calculator, lot size calculator" />
+    <meta name="author" content="ABHI TRADES PTY LTD" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://notionalvolume.vercel.app{% block canonical %}{{ request.path }}{% endblock %}" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://notionalvolume.vercel.app{{ request.path }}" />
+    <meta property="og:title" content="{% block og_title %}Trading Notional Volume Calculator{% endblock %}" />
+    <meta property="og:description" content="{% block og_description %}Free tool to calculate notional trading volume in USD from MT5 and cTrader exports.{% endblock %}" />
+    <meta property="og:image" content="https://notionalvolume.vercel.app/static/images/og-image.png" />
+    <meta property="og:site_name" content="Notional Volume Calculator" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://notionalvolume.vercel.app{{ request.path }}" />
+    <meta name="twitter:title" content="Trading Notional Volume Calculator" />
+    <meta name="twitter:description" content="Free tool to calculate notional trading volume in USD from MT5 and cTrader exports." />
+    <meta name="twitter:image" content="https://notionalvolume.vercel.app/static/images/og-image.png" />
+
     <!-- Theme detection (before CSS to prevent flash) -->
     <script>
       ;(function () {

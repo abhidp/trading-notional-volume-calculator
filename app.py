@@ -279,5 +279,40 @@ def help_page():
     return render_template("help.html")
 
 
+@app.route("/robots.txt")
+def robots():
+    """Robots.txt for SEO"""
+    content = """User-agent: *
+Allow: /
+Disallow: /upload
+Disallow: /results/
+Disallow: /download/
+Disallow: /export/
+
+Sitemap: https://notionalvolume.vercel.app/sitemap.xml
+"""
+    return Response(content, mimetype="text/plain")
+
+
+@app.route("/sitemap.xml")
+def sitemap():
+    """Sitemap for SEO"""
+    content = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://notionalvolume.vercel.app/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://notionalvolume.vercel.app/help</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>
+"""
+    return Response(content, mimetype="application/xml")
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5001)

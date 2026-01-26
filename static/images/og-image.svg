@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#212529"/>
+
+  <!-- Grid pattern -->
+  <g stroke="#333" stroke-width="1" opacity="0.5">
+    <line x1="0" y1="150" x2="1200" y2="150"/>
+    <line x1="0" y1="300" x2="1200" y2="300"/>
+    <line x1="0" y1="450" x2="1200" y2="450"/>
+  </g>
+
+  <!-- Chart line -->
+  <polyline
+    points="100,450 300,380 500,420 700,280 900,200 1100,100"
+    fill="none"
+    stroke="#20c997"
+    stroke-width="6"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+
+  <!-- Data points -->
+  <circle cx="100" cy="450" r="8" fill="#20c997"/>
+  <circle cx="300" cy="380" r="8" fill="#20c997"/>
+  <circle cx="500" cy="420" r="8" fill="#20c997"/>
+  <circle cx="700" cy="280" r="8" fill="#20c997"/>
+  <circle cx="900" cy="200" r="8" fill="#20c997"/>
+  <circle cx="1100" cy="100" r="12" fill="#20c997"/>
+
+  <!-- Arrow at peak -->
+  <polygon points="1100,70 1085,95 1115,95" fill="#20c997"/>
+
+  <!-- Title -->
+  <text x="600" y="520" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="bold" fill="#ffffff" text-anchor="middle">
+    Trading Notional Volume Calculator
+  </text>
+
+  <!-- Subtitle -->
+  <text x="600" y="575" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="#6c757d" text-anchor="middle">
+    Calculate USD volume from MT5 &amp; cTrader exports
+  </text>
+</svg>
