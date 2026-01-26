@@ -9,11 +9,14 @@
 
     <!-- Theme detection (before CSS to prevent flash) -->
     <script>
-      (function() {
-        const theme = localStorage.getItem('theme') ||
-          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        document.documentElement.setAttribute('data-bs-theme', theme);
-      })();
+      ;(function () {
+        const theme =
+          localStorage.getItem('theme') ||
+          (window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light')
+        document.documentElement.setAttribute('data-bs-theme', theme)
+      })()
     </script>
 
     <!-- Favicon -->
@@ -53,9 +56,6 @@
             class="badge bg-success bg-opacity-75 ms-2 fw-normal d-none d-sm-inline"
             style="font-size: 0.6rem; vertical-align: middle"
             >open-source</span
-          >
-          <small class="text-muted fs-6 ms-2 d-none d-lg-inline"
-            >for CFD Instruments</small
           >
         </a>
         <div class="ms-auto d-flex align-items-center">
@@ -152,25 +152,26 @@
 
     <!-- Theme Toggle Script -->
     <script>
-      (function() {
-        const toggle = document.getElementById('themeToggle');
-        const icon = document.getElementById('themeIcon');
+      ;(function () {
+        const toggle = document.getElementById('themeToggle')
+        const icon = document.getElementById('themeIcon')
 
         function updateIcon(theme) {
-          icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+          icon.className =
+            theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill'
         }
 
         // Set initial icon based on current theme
-        updateIcon(document.documentElement.getAttribute('data-bs-theme'));
+        updateIcon(document.documentElement.getAttribute('data-bs-theme'))
 
-        toggle.addEventListener('click', function() {
-          const current = document.documentElement.getAttribute('data-bs-theme');
-          const next = current === 'dark' ? 'light' : 'dark';
-          document.documentElement.setAttribute('data-bs-theme', next);
-          localStorage.setItem('theme', next);
-          updateIcon(next);
-        });
-      })();
+        toggle.addEventListener('click', function () {
+          const current = document.documentElement.getAttribute('data-bs-theme')
+          const next = current === 'dark' ? 'light' : 'dark'
+          document.documentElement.setAttribute('data-bs-theme', next)
+          localStorage.setItem('theme', next)
+          updateIcon(next)
+        })
+      })()
     </script>
 
     {% block scripts %}{% endblock %}
