@@ -180,29 +180,28 @@ tr:nth-child(8) .progress-bar {
   animation-delay: 1.4s;
 }
 
-/* Pulse animation for icons - using scale instead of opacity */
+/* Pulse animation for icons - transform-only for smooth compositing */
 @keyframes iconPulse {
   0%,
   100% {
     transform: scale(1);
-    opacity: 0.5;
   }
   50% {
-    transform: scale(1.1);
-    opacity: 0.7;
+    transform: scale(1.12);
   }
 }
 
 .summary-card .bi {
-  animation: iconPulse 2s ease-in-out infinite;
+  animation: iconPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   display: inline-block;
+  will-change: transform;
 }
 
 .summary-card:hover .bi {
   animation: none;
   transform: scale(1.15);
   opacity: 0.9 !important;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease;
 }
 
 /* Table improvements */
