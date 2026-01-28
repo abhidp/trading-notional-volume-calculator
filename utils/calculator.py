@@ -47,11 +47,39 @@ def is_supported_symbol(symbol: str) -> bool:
     return not (len(symbol) <= 5 and symbol.isalpha())
 
 
+def is_index_symbol(symbol: str) -> bool:
+    """
+    Detect if a symbol is likely an index CFD.
+
+    Index symbols typically contain a mix of letters and digits (e.g., SPX500, US30,
+    NAS100, GER40) and are NOT forex pairs or commodity symbols ending in USD.
+    """
+    # Already in CONTRACT_SIZES — handled separately
+    if symbol in CONTRACT_SIZES:
+        return False
+
+    # Forex pairs: exactly 6 alpha chars where both halves are known currencies
+    currencies = {"USD", "EUR", "GBP", "JPY", "AUD", "NZD", "CAD", "CHF"}
+    if len(symbol) == 6 and symbol.isalpha() and symbol[:3] in currencies and symbol[3:6] in currencies:
+        return False
+
+    # Commodity/crypto ending in USD (e.g., XAUUSD, BTCUSD) — not an index
+    if symbol.endswith("USD") and len(symbol) > 3:
+        return False
+
+    # Index pattern: contains at least one digit mixed with letters
+    return any(c.isdigit() for c in symbol) and any(c.isalpha() for c in symbol)
+
+
 def get_contract_size(symbol: str) -> float:
     """Get contract size for a symbol"""
     # Check if symbol is in predefined sizes
     if symbol in CONTRACT_SIZES:
         return CONTRACT_SIZES[symbol]
+
+    # Index CFDs have a contract size of 1 (1 CFD = index value)
+    if is_index_symbol(symbol):
+        return 1
 
     # Default to forex contract size for currency pairs
     return DEFAULT_FOREX_CONTRACT_SIZE
@@ -104,7 +132,21 @@ def extract_base_currency(symbol: str, symbol_type: str) -> str:
         "GER40": "EUR",
         "GER30": "EUR",
         "UK100": "GBP",
+        "FTSE100": "GBP",
         "EU50": "EUR",
+        "STOXX50": "EUR",
+        "FRA40": "EUR",
+        "SPA35": "EUR",
+        "NETH25": "EUR",
+        "SWI20": "CHF",
+        "JPN225": "JPY",
+        "AUS200": "AUD",
+        "HK50": "USD",  # Typically quoted in USD on CFD platforms
+        "CHINA50": "USD",
+        "CHINAH": "USD",
+        "SING30": "USD",
+        "CAN60": "CAD",
+        "SAFR40": "USD",
         "SPOTCRUDE": "USD",
     }
     if symbol in index_currencies:
